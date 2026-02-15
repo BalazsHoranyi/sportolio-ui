@@ -4,7 +4,8 @@ import { AppShell } from "@/components/layout/app-shell"
 import { cn } from "@/lib/utils"
 import type {
   TodayContributorSession,
-  TodayDashboardData
+  TodayDashboardData,
+  TodayScoreExplanationKey
 } from "@/features/today/types"
 
 const SCORE_MIN = 1
@@ -17,6 +18,17 @@ const AXIS_DEFINITIONS = [
   { key: "metabolic", label: "Metabolic", barColor: "bg-emerald-600" },
   { key: "mechanical", label: "Mechanical", barColor: "bg-amber-600" }
 ] as const
+
+const DEFAULT_SCORE_EXPLANATION_LINKS: Record<
+  TodayScoreExplanationKey,
+  string
+> = {
+  neural: "/explainability/scores/neural",
+  metabolic: "/explainability/scores/metabolic",
+  mechanical: "/explainability/scores/mechanical",
+  recruitment: "/explainability/scores/recruitment",
+  combined_fatigue: "/explainability/scores/combined_fatigue"
+}
 
 type RiskBand = "Red zone" | "Elevated" | "Manageable"
 
@@ -81,6 +93,45 @@ function resolveIncludedContributors(
   return contributors.filter((session) => includedIds.has(session.id))
 }
 
+function resolveScoreExplanationHref(
+  scoreKey: TodayScoreExplanationKey,
+  links: TodayDashboardData["scoreExplanationLinks"]
+): string | null {
+  const explicit = links?.[scoreKey]
+  if (explicit === null) {
+    return null
+  }
+  if (typeof explicit === "string" && explicit.trim().length > 0) {
+    return explicit
+  }
+  return DEFAULT_SCORE_EXPLANATION_LINKS[scoreKey]
+}
+
+function renderScoreExplanationLink(
+  scoreKey: TodayScoreExplanationKey,
+  label: string,
+  fallbackLabel: string,
+  links: TodayDashboardData["scoreExplanationLinks"]
+) {
+  const href = resolveScoreExplanationHref(scoreKey, links)
+  if (href === null) {
+    return (
+      <p className="text-xs text-muted-foreground" aria-label={fallbackLabel}>
+        {fallbackLabel}
+      </p>
+    )
+  }
+
+  return (
+    <a
+      href={href}
+      className="text-xs font-medium text-primary underline-offset-2 hover:underline"
+    >
+      {label}
+    </a>
+  )
+}
+
 function renderSystemCapacityItem(
   label: string,
   value: number | null | undefined
@@ -107,6 +158,12 @@ export function TodayDashboard({ data }: { data: TodayDashboardData }) {
       headerContent={
         <div className="flex flex-wrap items-center gap-3">
           <Badge>Recruitment {formatScore(data.snapshot.recruitment)}</Badge>
+          {renderScoreExplanationLink(
+            "recruitment",
+            "Why this recruitment score?",
+            "Recruitment explanation unavailable.",
+            data.scoreExplanationLinks
+          )}
           <p className="text-sm text-muted-foreground">
             Accumulation window: {data.accumulation.boundaryStart} -&gt;{" "}
             {data.accumulation.boundaryEnd}
@@ -158,6 +215,12 @@ export function TodayDashboard({ data }: { data: TodayDashboardData }) {
               >
                 {riskBand}
               </p>
+              {renderScoreExplanationLink(
+                axis.key,
+                `Why this ${axis.label.toLowerCase()} score?`,
+                `${axis.label} explanation unavailable.`,
+                data.scoreExplanationLinks
+              )}
             </Card>
           )
         })}
@@ -176,6 +239,12 @@ export function TodayDashboard({ data }: { data: TodayDashboardData }) {
           <p className="text-sm text-muted-foreground">
             {data.combinedScore.interpretation}
           </p>
+          {renderScoreExplanationLink(
+            "combined_fatigue",
+            "Why this combined score?",
+            "Combined score explanation unavailable.",
+            data.scoreExplanationLinks
+          )}
         </Card>
 
         <Card

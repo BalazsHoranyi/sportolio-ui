@@ -29,10 +29,22 @@ export type TodayContributorSession = {
   href: string
 }
 
+export type TodayScoreExplanationKey =
+  | "neural"
+  | "metabolic"
+  | "mechanical"
+  | "recruitment"
+  | "combined_fatigue"
+
+export type TodayScoreExplanationLinks = Partial<
+  Record<TodayScoreExplanationKey, string | null>
+>
+
 export type TodayDashboardData = {
   snapshot: TodayAxisSnapshot
   combinedScore: TodayCombinedScore
   systemCapacity: TodaySystemCapacity
   accumulation: TodayAccumulationWindow
+  scoreExplanationLinks?: TodayScoreExplanationLinks
   contributors: TodayContributorSession[]
 }

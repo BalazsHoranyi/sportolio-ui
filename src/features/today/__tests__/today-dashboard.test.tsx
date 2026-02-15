@@ -25,6 +25,13 @@ const todayData: TodayDashboardData = {
     boundaryEnd: "2026-02-15T16:00:00+00:00",
     includedSessionIds: ["s2", "s4"]
   },
+  scoreExplanationLinks: {
+    neural: "/explainability/scores/neural",
+    metabolic: "/explainability/scores/metabolic",
+    mechanical: "/explainability/scores/mechanical",
+    recruitment: "/explainability/scores/recruitment",
+    combined_fatigue: "/explainability/scores/combined_fatigue"
+  },
   contributors: [
     {
       id: "s1",
@@ -67,6 +74,19 @@ describe("TodayDashboard", () => {
         "Accumulation window: 2026-02-15T10:30:00+00:00 -> 2026-02-15T16:00:00+00:00"
       )
     ).toBeVisible()
+
+    expect(
+      screen.getByRole("link", { name: "Why this neural score?" })
+    ).toHaveAttribute("href", "/explainability/scores/neural")
+    expect(
+      screen.getByRole("link", { name: "Why this metabolic score?" })
+    ).toHaveAttribute("href", "/explainability/scores/metabolic")
+    expect(
+      screen.getByRole("link", { name: "Why this mechanical score?" })
+    ).toHaveAttribute("href", "/explainability/scores/mechanical")
+    expect(
+      screen.getByRole("link", { name: "Why this recruitment score?" })
+    ).toHaveAttribute("href", "/explainability/scores/recruitment")
   })
 
   it("keeps combined score and system capacity indicators in separate sections", () => {
@@ -81,6 +101,11 @@ describe("TodayDashboard", () => {
         "probability next hard session degrades adaptation."
       )
     ).toBeVisible()
+    expect(
+      within(combinedSection).getByRole("link", {
+        name: "Why this combined score?"
+      })
+    ).toHaveAttribute("href", "/explainability/scores/combined_fatigue")
 
     const systemCapacitySection = screen.getByRole("region", {
       name: "System capacity indicator"
@@ -155,5 +180,41 @@ describe("TodayDashboard", () => {
       name: "System capacity indicator"
     })
     expect(within(systemCapacitySection).getAllByText("n/a")).toHaveLength(4)
+  })
+
+  it("shows explanation unavailable fallback when score links are intentionally disabled", () => {
+    render(
+      <TodayDashboard
+        data={{
+          ...todayData,
+          scoreExplanationLinks: {
+            ...todayData.scoreExplanationLinks,
+            recruitment: null,
+            combined_fatigue: null
+          }
+        }}
+      />
+    )
+
+    expect(
+      screen.queryByRole("link", { name: "Why this recruitment score?" })
+    ).not.toBeInTheDocument()
+    expect(
+      screen.getByText("Recruitment explanation unavailable.")
+    ).toBeVisible()
+
+    const combinedSection = screen.getByRole("region", {
+      name: "Combined fatigue score"
+    })
+    expect(
+      within(combinedSection).queryByRole("link", {
+        name: "Why this combined score?"
+      })
+    ).not.toBeInTheDocument()
+    expect(
+      within(combinedSection).getByText(
+        "Combined score explanation unavailable."
+      )
+    ).toBeVisible()
   })
 })

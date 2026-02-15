@@ -22,6 +22,13 @@ export const TODAY_DASHBOARD_PREVIEW: TodayDashboardData = {
     boundaryEnd: "2026-02-15T16:00:00+00:00",
     includedSessionIds: ["s2", "s4"]
   },
+  scoreExplanationLinks: {
+    neural: "/explainability/scores/neural",
+    metabolic: "/explainability/scores/metabolic",
+    mechanical: "/explainability/scores/mechanical",
+    recruitment: "/explainability/scores/recruitment",
+    combined_fatigue: "/explainability/scores/combined_fatigue"
+  },
   contributors: [
     {
       id: "s1",
