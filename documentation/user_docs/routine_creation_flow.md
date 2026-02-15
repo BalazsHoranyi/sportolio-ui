@@ -49,6 +49,18 @@ In Strength visual mode, you can:
 - add exercises to the routine
 - remove selected exercises
 
+## Advanced strength controls
+
+Strength mode now also supports:
+
+- custom variables (for example, `topSetLoad`)
+- loop counts and optional conditions on strength blocks
+- exercise-level conditions
+- set-level progression strategy + value
+- set-level rest seconds and optional timer seconds
+- drag/drop reordering of exercises inside a block
+- keyboard reordering with move up/down controls
+
 ## Payload preview
 
 A preview panel shows the currently synchronized routine payload. This mirrors what downstream sync/parity hooks consume.

@@ -379,4 +379,96 @@ describe("RoutineCreationFlow", () => {
     expect(screen.getByText("Steady")).toBeVisible()
     expect(screen.getByLabelText("Routine name")).toHaveValue("Valid Builder")
   })
+
+  it("supports advanced strength controls and retains them in DSL mode", async () => {
+    const user = userEvent.setup()
+
+    render(<RoutineCreationFlow />)
+
+    const searchInput = screen.getByLabelText("Search exercises")
+    await user.type(searchInput, "back squat")
+    await user.click(
+      await screen.findByRole("option", {
+        name: /Back Squat/i
+      })
+    )
+
+    await user.click(screen.getByRole("button", { name: "Add variable" }))
+    await user.type(screen.getByLabelText("Variable name 1"), "topSetLoad")
+    await user.type(screen.getByLabelText("Variable default value 1"), "100kg")
+
+    fireEvent.change(screen.getByLabelText("Loop count for Primary block"), {
+      target: { value: "3" }
+    })
+    await user.type(
+      screen.getByLabelText("Condition for Primary block"),
+      "week<=4"
+    )
+    await user.type(
+      screen.getByLabelText("Condition for Back Squat"),
+      "readiness>=7"
+    )
+    await user.selectOptions(
+      screen.getByLabelText("Progression for Back Squat set 1"),
+      "linear"
+    )
+    await user.type(
+      screen.getByLabelText("Progression value for Back Squat set 1"),
+      "+2.5kg/week"
+    )
+
+    await user.click(screen.getByRole("button", { name: "DSL" }))
+
+    const dslEditor = screen.getByLabelText("Routine DSL editor")
+    expect((dslEditor as HTMLTextAreaElement).value).toContain('"variables"')
+    expect((dslEditor as HTMLTextAreaElement).value).toContain(
+      '"repeatCount": 3'
+    )
+    expect((dslEditor as HTMLTextAreaElement).value).toContain('"condition"')
+    expect((dslEditor as HTMLTextAreaElement).value).toContain('"progression"')
+  })
+
+  it("supports drag/drop and keyboard reorder for strength exercises", async () => {
+    const user = userEvent.setup()
+
+    render(<RoutineCreationFlow />)
+
+    const searchInput = screen.getByLabelText("Search exercises")
+
+    await user.type(searchInput, "back squat")
+    await user.click(
+      await screen.findByRole("option", {
+        name: /Back Squat/i
+      })
+    )
+
+    await user.clear(searchInput)
+    await user.type(searchInput, "seated cable row")
+    await user.click(
+      await screen.findByRole("option", {
+        name: /Seated Cable Row/i
+      })
+    )
+
+    const list = screen.getByLabelText("Exercises in Primary block")
+    const beforeDrag = within(list).getAllByRole("listitem")
+    expect(beforeDrag[0]).toHaveTextContent("Back Squat")
+    expect(beforeDrag[1]).toHaveTextContent("Seated Cable Row")
+
+    fireEvent.dragStart(screen.getByLabelText("Drag Seated Cable Row"))
+    fireEvent.dragOver(screen.getByLabelText("Drop before Back Squat"))
+    fireEvent.drop(screen.getByLabelText("Drop before Back Squat"))
+
+    const afterDrag = within(list).getAllByRole("listitem")
+    expect(afterDrag[0]).toHaveTextContent("Seated Cable Row")
+    expect(afterDrag[1]).toHaveTextContent("Back Squat")
+
+    await user.click(
+      screen.getByRole("button", { name: "Move Seated Cable Row down" })
+    )
+
+    const afterKeyboard = within(list).getAllByRole("listitem")
+    expect(afterKeyboard[0]).toHaveTextContent("Back Squat")
+    expect(afterKeyboard[1]).toHaveTextContent("Seated Cable Row")
+  })
 })

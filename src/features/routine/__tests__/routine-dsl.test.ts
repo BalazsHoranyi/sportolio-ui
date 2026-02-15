@@ -14,7 +14,77 @@ const ROUND_TRIP_FIXTURES: ReadonlyArray<{
     draft: {
       name: "Strength Builder",
       path: "strength",
-      strength: { exerciseIds: ["ex-3", "ex-2", "ex-1"] },
+      strength: {
+        exerciseIds: ["ex-3", "ex-2", "ex-1"],
+        variables: [],
+        blocks: [
+          {
+            id: "block-1",
+            name: "Primary block",
+            repeatCount: 1,
+            condition: "",
+            exercises: [
+              {
+                id: "entry-1",
+                exerciseId: "ex-3",
+                condition: "",
+                sets: [
+                  {
+                    id: "set-1",
+                    reps: 5,
+                    load: "100kg",
+                    restSeconds: 120,
+                    timerSeconds: null,
+                    progression: {
+                      strategy: "none",
+                      value: ""
+                    },
+                    condition: ""
+                  }
+                ]
+              },
+              {
+                id: "entry-2",
+                exerciseId: "ex-2",
+                condition: "",
+                sets: [
+                  {
+                    id: "set-2",
+                    reps: 5,
+                    load: "100kg",
+                    restSeconds: 120,
+                    timerSeconds: null,
+                    progression: {
+                      strategy: "none",
+                      value: ""
+                    },
+                    condition: ""
+                  }
+                ]
+              },
+              {
+                id: "entry-3",
+                exerciseId: "ex-1",
+                condition: "",
+                sets: [
+                  {
+                    id: "set-3",
+                    reps: 5,
+                    load: "100kg",
+                    restSeconds: 120,
+                    timerSeconds: null,
+                    progression: {
+                      strategy: "none",
+                      value: ""
+                    },
+                    condition: ""
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
       endurance: {
         timeline: [
           {
@@ -35,7 +105,39 @@ const ROUND_TRIP_FIXTURES: ReadonlyArray<{
     draft: {
       name: "Endurance Builder",
       path: "endurance",
-      strength: { exerciseIds: ["ex-1"] },
+      strength: {
+        exerciseIds: ["ex-1"],
+        variables: [],
+        blocks: [
+          {
+            id: "block-1",
+            name: "Primary block",
+            repeatCount: 1,
+            condition: "",
+            exercises: [
+              {
+                id: "entry-1",
+                exerciseId: "ex-1",
+                condition: "",
+                sets: [
+                  {
+                    id: "set-1",
+                    reps: 5,
+                    load: "100kg",
+                    restSeconds: 120,
+                    timerSeconds: null,
+                    progression: {
+                      strategy: "none",
+                      value: ""
+                    },
+                    condition: ""
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
       endurance: {
         timeline: [
           {
@@ -304,6 +406,115 @@ describe("routine-dsl", () => {
       }
     ])
     expect(result.draft.endurance.reusableBlocks).toEqual([])
+  })
+
+  it("supports Liftosaur-like advanced strength constructs without lossy parsing", () => {
+    const advancedPayload = {
+      name: "Advanced Strength Builder",
+      path: "strength",
+      strength: {
+        exerciseIds: ["ex-1", "ex-2"],
+        variables: [
+          {
+            id: "var-1",
+            name: "topSetLoad",
+            defaultValue: "100kg"
+          }
+        ],
+        blocks: [
+          {
+            id: "block-main",
+            name: "Main Block",
+            repeatCount: 2,
+            condition: "week<=4",
+            exercises: [
+              {
+                id: "entry-1",
+                exerciseId: "ex-1",
+                condition: "readiness>=7",
+                sets: [
+                  {
+                    id: "set-1",
+                    reps: 5,
+                    load: "$topSetLoad",
+                    restSeconds: 180,
+                    timerSeconds: 60,
+                    progression: {
+                      strategy: "linear",
+                      value: "+2.5kg/week"
+                    },
+                    condition: "lastSetRpe<=8"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      endurance: {
+        timeline: [
+          {
+            kind: "interval",
+            id: "int-1",
+            label: "Steady",
+            durationSeconds: 300,
+            targetType: "power",
+            targetValue: 250
+          }
+        ],
+        reusableBlocks: []
+      }
+    }
+
+    const result = parseRoutineDsl(JSON.stringify(advancedPayload, null, 2))
+
+    expect(result).toEqual({
+      ok: true,
+      draft: advancedPayload
+    })
+  })
+
+  it("hydrates legacy strength payloads with default advanced structure", () => {
+    const legacyStrengthPayload = JSON.stringify(
+      {
+        name: "Legacy Strength Day",
+        path: "strength",
+        strength: {
+          exerciseIds: ["ex-1", "ex-2"]
+        },
+        endurance: {
+          intervals: [
+            {
+              id: "int-1",
+              label: "Steady",
+              durationSeconds: 300,
+              targetType: "power",
+              targetValue: 250
+            }
+          ]
+        }
+      },
+      null,
+      2
+    )
+
+    const result = parseRoutineDsl(legacyStrengthPayload)
+
+    expect(result.ok).toBe(true)
+    if (!result.ok) {
+      throw new Error("Expected parse success")
+    }
+
+    expect(result.draft.strength).toMatchObject({
+      exerciseIds: ["ex-1", "ex-2"],
+      variables: [],
+      blocks: [
+        {
+          repeatCount: 1
+        }
+      ]
+    })
+    expect(result.draft.strength.blocks[0]?.exercises).toHaveLength(2)
   })
 
   it.each(ROUND_TRIP_FIXTURES)(

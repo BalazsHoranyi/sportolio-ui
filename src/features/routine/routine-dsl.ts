@@ -3,7 +3,13 @@ import type {
   EnduranceReusableBlock,
   EnduranceTargetType,
   EnduranceTimelineNode,
-  RoutineDraft
+  RoutineDraft,
+  StrengthBlockDraft,
+  StrengthExerciseEntryDraft,
+  StrengthProgressionRule,
+  StrengthProgressionStrategy,
+  StrengthSetDraft,
+  StrengthVariableDraft
 } from "@/features/routine/types"
 
 const ENDURANCE_TARGET_TYPES = new Set<EnduranceTargetType>([
@@ -13,12 +19,65 @@ const ENDURANCE_TARGET_TYPES = new Set<EnduranceTargetType>([
   "cadence"
 ])
 
+const STRENGTH_PROGRESSION_STRATEGIES = new Set<StrengthProgressionStrategy>([
+  "none",
+  "linear",
+  "double-progression",
+  "wave",
+  "custom"
+])
+
+function buildDefaultStrengthSet(setId: string): StrengthSetDraft {
+  return {
+    id: setId,
+    reps: 5,
+    load: "100kg",
+    restSeconds: 120,
+    timerSeconds: null,
+    progression: {
+      strategy: "none",
+      value: ""
+    },
+    condition: ""
+  }
+}
+
+function buildDefaultStrengthExercise(
+  exerciseId: string,
+  index: number
+): StrengthExerciseEntryDraft {
+  return {
+    id: `entry-${index + 1}`,
+    exerciseId,
+    condition: "",
+    sets: [buildDefaultStrengthSet(`set-${index + 1}-1`)]
+  }
+}
+
+function buildDefaultStrengthBlocks(
+  exerciseIds: string[]
+): StrengthBlockDraft[] {
+  return [
+    {
+      id: "block-1",
+      name: "Primary block",
+      repeatCount: 1,
+      condition: "",
+      exercises: exerciseIds.map((exerciseId, index) =>
+        buildDefaultStrengthExercise(exerciseId, index)
+      )
+    }
+  ]
+}
+
 export function buildInitialRoutineDraft(): RoutineDraft {
   return {
     name: "New Routine",
     path: "strength",
     strength: {
-      exerciseIds: []
+      exerciseIds: [],
+      variables: [],
+      blocks: buildDefaultStrengthBlocks([])
     },
     endurance: {
       timeline: [
@@ -61,6 +120,16 @@ function readString(value: unknown, fieldName: string): string {
   return trimmed
 }
 
+function readOptionalString(value: unknown, fieldName: string): string {
+  if (typeof value === "undefined" || value === null) {
+    return ""
+  }
+  if (typeof value !== "string") {
+    throw new Error(`Set \`${fieldName}\` to a string value.`)
+  }
+  return value.trim()
+}
+
 function readPositiveNumber(value: unknown, fieldName: string): number {
   if (typeof value !== "number" || Number.isNaN(value)) {
     throw new Error(`Set \`${fieldName}\` to a number value.`)
@@ -82,6 +151,22 @@ function readPositiveInteger(value: unknown, fieldName: string): number {
   return parsed
 }
 
+function readNonNegativeInteger(value: unknown, fieldName: string): number {
+  if (typeof value !== "number" || Number.isNaN(value)) {
+    throw new Error(`Set \`${fieldName}\` to a number value.`)
+  }
+
+  if (!Number.isInteger(value)) {
+    throw new Error(`Set \`${fieldName}\` to a whole number.`)
+  }
+
+  if (value < 0) {
+    throw new Error(`Set \`${fieldName}\` to zero or greater.`)
+  }
+
+  return value
+}
+
 function readTargetType(
   value: unknown,
   fieldName: string
@@ -94,6 +179,168 @@ function readTargetType(
   }
 
   return targetType
+}
+
+function parseStrengthProgression(
+  value: unknown,
+  fieldName: string
+): StrengthProgressionRule {
+  if (typeof value === "undefined") {
+    return {
+      strategy: "none",
+      value: ""
+    }
+  }
+
+  if (!isRecord(value)) {
+    throw new Error(
+      `Set \`${fieldName}\` to an object with strategy and value fields.`
+    )
+  }
+
+  const strategy = readString(
+    value.strategy,
+    `${fieldName}.strategy`
+  ) as StrengthProgressionStrategy
+
+  if (!STRENGTH_PROGRESSION_STRATEGIES.has(strategy)) {
+    throw new Error(
+      `Use progression strategy none, linear, double-progression, wave, or custom at ${fieldName}.strategy.`
+    )
+  }
+
+  return {
+    strategy,
+    value: readOptionalString(value.value, `${fieldName}.value`)
+  }
+}
+
+function parseStrengthSet(value: unknown, fieldName: string): StrengthSetDraft {
+  if (!isRecord(value)) {
+    throw new Error(
+      `Set ${fieldName} to an object with id/reps/load/rest/timer/progression fields.`
+    )
+  }
+
+  const timerValue =
+    typeof value.timerSeconds === "undefined" || value.timerSeconds === null
+      ? null
+      : readNonNegativeInteger(value.timerSeconds, `${fieldName}.timerSeconds`)
+
+  return {
+    id: readString(value.id, `${fieldName}.id`),
+    reps: readPositiveInteger(value.reps, `${fieldName}.reps`),
+    load: readString(value.load, `${fieldName}.load`),
+    restSeconds: readNonNegativeInteger(
+      value.restSeconds,
+      `${fieldName}.restSeconds`
+    ),
+    timerSeconds: timerValue,
+    progression: parseStrengthProgression(
+      value.progression,
+      `${fieldName}.progression`
+    ),
+    condition: readOptionalString(value.condition, `${fieldName}.condition`)
+  }
+}
+
+function parseStrengthExerciseEntry(
+  value: unknown,
+  fieldName: string
+): StrengthExerciseEntryDraft {
+  if (!isRecord(value)) {
+    throw new Error(
+      `Set ${fieldName} to an object with id/exerciseId/condition/sets fields.`
+    )
+  }
+
+  if (!Array.isArray(value.sets) || value.sets.length === 0) {
+    throw new Error(`Add at least one set at ${fieldName}.sets.`)
+  }
+
+  return {
+    id: readString(value.id, `${fieldName}.id`),
+    exerciseId: readString(value.exerciseId, `${fieldName}.exerciseId`),
+    condition: readOptionalString(value.condition, `${fieldName}.condition`),
+    sets: value.sets.map((set, index) =>
+      parseStrengthSet(set, `${fieldName}.sets[${index}]`)
+    )
+  }
+}
+
+function parseStrengthVariables(value: unknown): StrengthVariableDraft[] {
+  if (typeof value === "undefined") {
+    return []
+  }
+
+  if (!Array.isArray(value)) {
+    throw new Error("Set `strength.variables` to an array.")
+  }
+
+  return value.map((variable, index) => {
+    if (!isRecord(variable)) {
+      throw new Error(
+        `Set strength.variables[${index}] to an object with id/name/defaultValue.`
+      )
+    }
+
+    return {
+      id: readString(variable.id, `strength.variables[${index}].id`),
+      name: readString(variable.name, `strength.variables[${index}].name`),
+      defaultValue: readString(
+        variable.defaultValue,
+        `strength.variables[${index}].defaultValue`
+      )
+    }
+  })
+}
+
+function parseStrengthBlocks(
+  value: unknown,
+  fallbackExerciseIds: string[]
+): StrengthBlockDraft[] {
+  if (typeof value === "undefined") {
+    return buildDefaultStrengthBlocks(fallbackExerciseIds)
+  }
+
+  if (!Array.isArray(value)) {
+    throw new Error("Set `strength.blocks` to an array.")
+  }
+
+  if (value.length === 0) {
+    return buildDefaultStrengthBlocks(fallbackExerciseIds)
+  }
+
+  return value.map((block, index) => {
+    if (!isRecord(block)) {
+      throw new Error(
+        `Set strength.blocks[${index}] to an object with id/name/repeatCount/condition/exercises fields.`
+      )
+    }
+
+    if (!Array.isArray(block.exercises)) {
+      throw new Error(`Set strength.blocks[${index}].exercises to an array.`)
+    }
+
+    return {
+      id: readString(block.id, `strength.blocks[${index}].id`),
+      name: readString(block.name, `strength.blocks[${index}].name`),
+      repeatCount: readPositiveInteger(
+        block.repeatCount,
+        `strength.blocks[${index}].repeatCount`
+      ),
+      condition: readOptionalString(
+        block.condition,
+        `strength.blocks[${index}].condition`
+      ),
+      exercises: block.exercises.map((entry, exerciseIndex) =>
+        parseStrengthExerciseEntry(
+          entry,
+          `strength.blocks[${index}].exercises[${exerciseIndex}]`
+        )
+      )
+    }
+  })
 }
 
 function parseIntervalNode(
@@ -289,6 +536,17 @@ export function parseRoutineDsl(source: string): ParseRoutineDslResult {
       (value, index) => readString(value, `strength.exerciseIds[${index}]`)
     )
 
+    const parsedBlocks = parseStrengthBlocks(
+      strength.blocks,
+      normalizedExerciseIds
+    )
+    const exerciseIdsFromBlocks = parsedBlocks.flatMap((block) =>
+      block.exercises.map((entry) => entry.exerciseId)
+    )
+    const mergedExerciseIds = [
+      ...new Set([...normalizedExerciseIds, ...exerciseIdsFromBlocks])
+    ]
+
     const endurance = raw.endurance
     if (!isRecord(endurance)) {
       throw new Error(
@@ -307,7 +565,9 @@ export function parseRoutineDsl(source: string): ParseRoutineDslResult {
         name: readString(raw.name, "name"),
         path,
         strength: {
-          exerciseIds: normalizedExerciseIds
+          exerciseIds: mergedExerciseIds,
+          variables: parseStrengthVariables(strength.variables),
+          blocks: parsedBlocks
         },
         endurance: {
           timeline,
