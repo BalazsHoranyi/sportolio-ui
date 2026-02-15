@@ -117,4 +117,18 @@ describe("SessionComplianceDashboard", () => {
       within(details).getByRole("link", { name: "Tempo Bike" })
     ).toHaveAttribute("href", "/calendar?sessionId=sc-2")
   })
+
+  it("provides contextual metric glossary access", async () => {
+    const user = userEvent.setup()
+    render(<SessionComplianceDashboard data={data} />)
+
+    await user.click(screen.getByRole("button", { name: "Metric glossary" }))
+
+    const glossary = screen.getByRole("region", {
+      name: "Session Compliance metric glossary"
+    })
+    expect(within(glossary).getByText(/Glossary version/i)).toBeVisible()
+    expect(within(glossary).getByText("Adherence (%)")).toBeVisible()
+    expect(within(glossary).getByText("Move events")).toBeVisible()
+  })
 })

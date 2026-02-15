@@ -142,4 +142,18 @@ describe("AxisFatigueTrendsDashboard", () => {
       within(drilldown).getByText("No planned sessions for this day.")
     ).toBeVisible()
   })
+
+  it("provides contextual metric glossary access", async () => {
+    const user = userEvent.setup()
+    render(<AxisFatigueTrendsDashboard data={data} />)
+
+    await user.click(screen.getByRole("button", { name: "Metric glossary" }))
+
+    const glossary = screen.getByRole("region", {
+      name: "Axis Fatigue Trends metric glossary"
+    })
+    expect(within(glossary).getByText(/Glossary version/i)).toBeVisible()
+    expect(within(glossary).getByText("Neural load")).toBeVisible()
+    expect(within(glossary).getByText("Recruitment overlay")).toBeVisible()
+  })
 })

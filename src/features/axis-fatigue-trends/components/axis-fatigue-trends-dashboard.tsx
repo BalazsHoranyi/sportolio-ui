@@ -5,6 +5,7 @@ import { useMemo, useState } from "react"
 import { AppShell } from "@/components/layout/app-shell"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
+import { AnalyticsMetricGlossary } from "@/features/analytics-glossary/components/analytics-metric-glossary"
 import {
   getAuditSeriesStyle,
   normalizeAuditSeriesState
@@ -94,6 +95,7 @@ export function AxisFatigueTrendsDashboard({
         maxWidth="default"
       >
         <Card className="space-y-2 p-4">
+          <AnalyticsMetricGlossary dashboardKey="axis-fatigue-trends" />
           <p className="text-sm text-muted-foreground">
             Axis fatigue trends require at least one data window.
           </p>
@@ -111,6 +113,7 @@ export function AxisFatigueTrendsDashboard({
         maxWidth="default"
       >
         <Card className="space-y-2 p-4">
+          <AnalyticsMetricGlossary dashboardKey="axis-fatigue-trends" />
           <p className="text-sm text-muted-foreground">
             Axis fatigue trends require at least one day in the selected window.
           </p>
@@ -245,6 +248,7 @@ export function AxisFatigueTrendsDashboard({
       }
     >
       <Card className="space-y-4 p-4">
+        <AnalyticsMetricGlossary dashboardKey="axis-fatigue-trends" />
         <div className="space-y-1">
           <p className="text-sm text-muted-foreground">{activeWindow.label}</p>
           <h2 className="text-lg font-semibold">

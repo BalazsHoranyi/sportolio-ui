@@ -5,6 +5,7 @@ import { useMemo, useState } from "react"
 import { AppShell } from "@/components/layout/app-shell"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
+import { AnalyticsMetricGlossary } from "@/features/analytics-glossary/components/analytics-metric-glossary"
 import {
   buildEnduranceProgressSnapshot,
   classifyConfidenceBand,
@@ -85,6 +86,7 @@ export function EnduranceProgressDashboard({
         description="Launch dashboard for zone distribution and threshold trend monitoring."
       >
         <Card className="space-y-2 p-4">
+          <AnalyticsMetricGlossary dashboardKey="endurance-progress" />
           <p className="text-sm text-muted-foreground">
             Endurance progress requires at least one data window.
           </p>
@@ -100,6 +102,7 @@ export function EnduranceProgressDashboard({
         description="Launch dashboard for zone distribution and threshold trend monitoring."
       >
         <Card className="space-y-2 p-4">
+          <AnalyticsMetricGlossary dashboardKey="endurance-progress" />
           <p className="text-sm text-muted-foreground">
             Endurance progress requires at least one threshold trend point in
             the selected window.
@@ -166,6 +169,7 @@ export function EnduranceProgressDashboard({
       }
     >
       <Card className="space-y-4 p-4">
+        <AnalyticsMetricGlossary dashboardKey="endurance-progress" />
         <div className="flex flex-wrap items-center justify-between gap-3">
           <p className="text-sm text-muted-foreground">{activeWindow.label}</p>
           <div className="rounded-md border px-3 py-2">

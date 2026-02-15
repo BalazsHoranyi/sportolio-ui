@@ -6,6 +6,7 @@ import { AppShell } from "@/components/layout/app-shell"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
+import { AnalyticsMetricGlossary } from "@/features/analytics-glossary/components/analytics-metric-glossary"
 import {
   buildSessionComplianceSnapshot,
   normalizeSessionComplianceData,
@@ -111,6 +112,7 @@ export function SessionComplianceDashboard({
         maxWidth="default"
       >
         <Card className="space-y-2 p-4">
+          <AnalyticsMetricGlossary dashboardKey="session-compliance" />
           <p className="text-sm text-muted-foreground">
             Session compliance requires at least one data window.
           </p>
@@ -194,6 +196,7 @@ export function SessionComplianceDashboard({
       }
     >
       <Card className="space-y-4 p-4">
+        <AnalyticsMetricGlossary dashboardKey="session-compliance" />
         <div className="flex flex-wrap items-center justify-between gap-3">
           <p className="text-sm text-muted-foreground">{activeWindow.label}</p>
           <Badge className={ADHERENCE_COLORS[snapshot.adherenceState]}>

@@ -167,4 +167,18 @@ describe("EnduranceProgressDashboard", () => {
       within(details).getByText("No contributing sessions for this point.")
     ).toBeVisible()
   })
+
+  it("provides contextual metric glossary access", async () => {
+    const user = userEvent.setup()
+    render(<EnduranceProgressDashboard data={data} />)
+
+    await user.click(screen.getByRole("button", { name: "Metric glossary" }))
+
+    const glossary = screen.getByRole("region", {
+      name: "Endurance Progress metric glossary"
+    })
+    expect(within(glossary).getByText(/Glossary version/i)).toBeVisible()
+    expect(within(glossary).getByText("Zone distribution (%)")).toBeVisible()
+    expect(within(glossary).getByText("Threshold trend")).toBeVisible()
+  })
 })

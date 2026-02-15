@@ -5,6 +5,7 @@ import { useMemo, useState } from "react"
 import { AppShell } from "@/components/layout/app-shell"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
+import { AnalyticsMetricGlossary } from "@/features/analytics-glossary/components/analytics-metric-glossary"
 import {
   normalizeAdaptationRiskTimelineData,
   resolveRiskZone,
@@ -75,6 +76,7 @@ export function AdaptationRiskTimelineDashboard({
         maxWidth="default"
       >
         <Card className="space-y-2 p-4">
+          <AnalyticsMetricGlossary dashboardKey="adaptation-risk-timeline" />
           <p className="text-sm text-muted-foreground">
             Adaptation risk timeline requires at least one data window.
           </p>
@@ -92,6 +94,7 @@ export function AdaptationRiskTimelineDashboard({
         maxWidth="default"
       >
         <Card className="space-y-2 p-4">
+          <AnalyticsMetricGlossary dashboardKey="adaptation-risk-timeline" />
           <p className="text-sm text-muted-foreground">
             Adaptation risk timeline requires at least one point in the selected
             window.
@@ -158,6 +161,7 @@ export function AdaptationRiskTimelineDashboard({
       }
     >
       <Card className="space-y-4 p-4">
+        <AnalyticsMetricGlossary dashboardKey="adaptation-risk-timeline" />
         <div className="space-y-1">
           <p className="text-sm text-muted-foreground">{activeWindow.label}</p>
           <h2 className="text-lg font-semibold">

@@ -164,4 +164,20 @@ describe("BlockEffectivenessDashboard", () => {
       within(drilldown).getByText("No contributing sessions for this metric.")
     ).toBeVisible()
   })
+
+  it("provides contextual metric glossary access", async () => {
+    const user = userEvent.setup()
+    render(<BlockEffectivenessDashboard data={data} />)
+
+    await user.click(screen.getByRole("button", { name: "Metric glossary" }))
+
+    const glossary = screen.getByRole("region", {
+      name: "Block Effectiveness metric glossary"
+    })
+    expect(within(glossary).getByText(/Glossary version/i)).toBeVisible()
+    expect(
+      within(glossary).getByText("Block effectiveness index")
+    ).toBeVisible()
+    expect(within(glossary).getByText("Delta (%)")).toBeVisible()
+  })
 })

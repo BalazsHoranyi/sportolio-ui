@@ -6,6 +6,7 @@ import { AppShell } from "@/components/layout/app-shell"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
+import { AnalyticsMetricGlossary } from "@/features/analytics-glossary/components/analytics-metric-glossary"
 import {
   buildBlockEffectivenessSnapshot,
   normalizeBlockEffectivenessData,
@@ -87,6 +88,7 @@ export function BlockEffectivenessDashboard({
         description="Launch dashboard for mesocycle block targets versus realized outcomes."
       >
         <Card className="space-y-2 p-4">
+          <AnalyticsMetricGlossary dashboardKey="block-effectiveness" />
           <p className="text-sm text-muted-foreground">
             Block effectiveness requires at least one data window.
           </p>
@@ -102,6 +104,7 @@ export function BlockEffectivenessDashboard({
         description="Launch dashboard for mesocycle block targets versus realized outcomes."
       >
         <Card className="space-y-2 p-4">
+          <AnalyticsMetricGlossary dashboardKey="block-effectiveness" />
           <p className="text-sm text-muted-foreground">
             No block data is available for the selected window.
           </p>
@@ -139,6 +142,7 @@ export function BlockEffectivenessDashboard({
       }
     >
       <Card className="space-y-4 p-4">
+        <AnalyticsMetricGlossary dashboardKey="block-effectiveness" />
         <div className="flex flex-wrap items-center justify-between gap-3">
           <p className="text-sm text-muted-foreground">{activeWindow.label}</p>
           <Badge

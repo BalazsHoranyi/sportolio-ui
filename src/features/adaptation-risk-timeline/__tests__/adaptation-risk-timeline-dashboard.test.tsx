@@ -102,4 +102,18 @@ describe("AdaptationRiskTimelineDashboard", () => {
       within(details).getByText("No contributors available for this point.")
     ).toBeVisible()
   })
+
+  it("provides contextual metric glossary access", async () => {
+    const user = userEvent.setup()
+    render(<AdaptationRiskTimelineDashboard data={data} />)
+
+    await user.click(screen.getByRole("button", { name: "Metric glossary" }))
+
+    const glossary = screen.getByRole("region", {
+      name: "Adaptation Risk Timeline metric glossary"
+    })
+    expect(within(glossary).getByText(/Glossary version/i)).toBeVisible()
+    expect(within(glossary).getByText("Gated risk score")).toBeVisible()
+    expect(within(glossary).getByText("System capacity gate")).toBeVisible()
+  })
 })
