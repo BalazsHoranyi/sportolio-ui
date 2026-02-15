@@ -321,7 +321,7 @@ describe("RoutineCreationFlow", () => {
 
   it("supports nested blocks and reusable block insertion in endurance timeline preview", async () => {
     const user = userEvent.setup()
-    const { container } = render(<RoutineCreationFlow />)
+    render(<RoutineCreationFlow />)
 
     await user.click(screen.getByRole("button", { name: "Endurance" }))
 
@@ -334,10 +334,8 @@ describe("RoutineCreationFlow", () => {
 
     await user.click(screen.getByRole("button", { name: "Insert Block 1" }))
 
-    const preview = container.querySelector("pre")
-    expect(preview).not.toBeNull()
-
-    const serialized = preview?.textContent ?? ""
+    const preview = screen.getByLabelText("Routine payload preview")
+    const serialized = preview.textContent ?? ""
     const payload = JSON.parse(serialized)
     expect(
       payload.endurance.timeline.filter(
@@ -345,6 +343,37 @@ describe("RoutineCreationFlow", () => {
       )
     ).toHaveLength(2)
     expect(payload.endurance.reusableBlocks).toHaveLength(1)
+  })
+
+  it("renders an executable tracking payload preview that updates with routine edits", async () => {
+    const user = userEvent.setup()
+
+    render(<RoutineCreationFlow />)
+
+    const searchInput = screen.getByLabelText("Search exercises")
+    await user.type(searchInput, "back squat")
+    await user.click(
+      await screen.findByRole("option", {
+        name: /Back Squat/i
+      })
+    )
+
+    await user.click(screen.getByRole("button", { name: "Endurance" }))
+    await user.click(screen.getByRole("button", { name: "Add block" }))
+
+    const executionPreview = screen.getByLabelText(
+      "Tracking execution payload preview"
+    )
+    const payload = JSON.parse(executionPreview.textContent ?? "")
+
+    expect(payload.schema_version).toBe("1.0")
+    expect(payload.routine_name).toBe("New Routine")
+    expect(payload.strength_sets.length).toBeGreaterThan(0)
+    expect(payload.strength_sets[0]).toMatchObject({
+      exercise_id: "ex-1",
+      exercise_name: "Back Squat"
+    })
+    expect(payload.endurance_intervals.length).toBeGreaterThan(1)
   })
 
   it("supports undo/redo history for visual edits", async () => {
@@ -617,6 +646,7 @@ it("saves templates and instantiates them with source attribution", async () => 
     screen.getByRole("button", { name: "Instantiate Coach Shared Builder" })
   )
 
-  expect(screen.getByText(/"templateSource"/)).toBeVisible()
-  expect(screen.getByText(/"context": "micro"/)).toBeVisible()
+  const routinePreview = screen.getByLabelText("Routine payload preview")
+  expect(routinePreview).toHaveTextContent('"templateSource"')
+  expect(routinePreview).toHaveTextContent('"context": "micro"')
 })

@@ -18,6 +18,7 @@ import {
   buildInitialRoutineDraft,
   serializeRoutineDraft
 } from "@/features/routine/routine-dsl"
+import { buildRoutineExecutionPayload } from "@/features/routine/routine-execution-payload"
 import {
   buildRoutineTemplate,
   canInstantiateRoutineTemplate,
@@ -202,6 +203,10 @@ export function RoutineCreationFlow() {
       templateLibrary,
       templateSearchInput
     ]
+  )
+  const trackingExecutionPayload = useMemo(
+    () => buildRoutineExecutionPayload(draft),
+    [draft]
   )
 
   const commitDraft = useCallback(
@@ -1652,8 +1657,25 @@ export function RoutineCreationFlow() {
         <p className="text-sm text-muted-foreground">
           Current routine payload exposed for downstream synchronization hooks.
         </p>
-        <pre className="overflow-x-auto rounded-md bg-muted p-3 text-xs">
+        <pre
+          aria-label="Routine payload preview"
+          className="overflow-x-auto rounded-md bg-muted p-3 text-xs"
+        >
           {serializeRoutineDraft(draft)}
+        </pre>
+      </Card>
+
+      <Card className="space-y-3 p-4">
+        <h2 className="text-base font-medium">Tracking execution payload</h2>
+        <p className="text-sm text-muted-foreground">
+          Expanded session contract for downstream execution and logging
+          surfaces.
+        </p>
+        <pre
+          aria-label="Tracking execution payload preview"
+          className="overflow-x-auto rounded-md bg-muted p-3 text-xs"
+        >
+          {JSON.stringify(trackingExecutionPayload, null, 2)}
         </pre>
       </Card>
 

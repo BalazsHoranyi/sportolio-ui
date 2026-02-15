@@ -71,9 +71,14 @@ Strength mode now also supports:
 - drag/drop reordering of exercises inside a block
 - keyboard reordering with move up/down controls
 
-## Payload preview
+## Payload previews
 
-A preview panel shows the currently synchronized routine payload. This mirrors what downstream sync/parity hooks consume.
+Two preview panels are available:
+
+- Routine payload preview: the synchronized routine JSON used by the visual/DSL editor flow.
+- Tracking execution payload preview: an expanded, deterministic execution contract (`schema_version: "1.0"`) for downstream workout logging/tracking surfaces.
+
+The tracking payload expands repeat loops and nested endurance blocks into executable set/interval sequences while preserving template attribution metadata.
 
 ## Routine template library
 

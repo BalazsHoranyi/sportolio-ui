@@ -31,6 +31,15 @@ Template metadata and workflows are implemented in:
   - `canInstantiateRoutineTemplate(...)`
   - `instantiateRoutineTemplate(...)`
 
+Execution payload export is implemented in:
+
+- `src/features/routine/routine-execution-payload.ts`
+  - `buildRoutineExecutionPayload(draft)`
+  - deterministic `schema_version: "1.0"` payload for tracking/execution surfaces
+  - strength set expansion across block repeat loops
+  - endurance interval expansion across nested block repeats
+  - catalog-backed `exercise_name` lookup with `exercise_id` fallback
+
 ## DSL Contract
 
 `src/features/routine/routine-dsl.ts` provides:
@@ -84,6 +93,8 @@ pipeline on top of structural parsing:
   and **do not block** commit.
 - Undo/redo controls are available in the form header and are keyboard-addressable (`Ctrl/Cmd+Z`, `Ctrl/Cmd+Y`, `Ctrl/Cmd+Shift+Z`).
 - A payload preview card exposes the current synchronized routine JSON as a parity hook.
+- A second payload preview card exposes an executable tracking payload generated
+  from the same synchronized draft.
 - DSL mode uses `RoutineDslEditor` (`src/features/routine/components/routine-dsl-editor.tsx`):
   - app runtime: CodeMirror-backed editor with JSON syntax highlighting + autocomplete
   - test runtime: deterministic textarea fallback to keep component tests stable
@@ -115,6 +126,11 @@ pipeline on top of structural parsing:
   - partially invalid DSL conflict handling
   - advanced strength fields retained in DSL mode
   - strength drag/drop and keyboard reorder flow
+  - executable tracking payload preview updates with routine edits
+- `src/features/routine/__tests__/routine-execution-payload.test.ts`
+  - deterministic execution payload contract
+  - repeat expansion for strength and nested endurance structures
+  - unknown exercise fallback and progression string formatting
 - `src/features/routine/__tests__/routine-dsl.test.ts`
   - parse/serialize round-trip
   - fixture corpus round-trip invariants
