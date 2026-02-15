@@ -1,7 +1,10 @@
 import {
   buildCycleWarnings,
   buildInitialCycleDraft,
+  moveMicrocycle,
+  parseCycleDraft,
   setMicrocycleCount,
+  serializeCycleDraft,
   validateGoalStep,
   validateMesocycleStep
 } from "@/features/planning/cycle-creation"
@@ -176,6 +179,75 @@ describe("cycle-creation domain", () => {
         id: "mc-01",
         keySessions: 3
       })
+    ])
+  })
+
+  it("reorders microcycles deterministically while preserving edited values", () => {
+    const draft = buildInitialCycleDraft()
+    draft.microcycleCount = 3
+    draft.microcycles = [
+      {
+        id: "mc-01",
+        label: "Microcycle 1",
+        focus: "strength",
+        keySessions: 3
+      },
+      {
+        id: "mc-02",
+        label: "Microcycle 2",
+        focus: "endurance",
+        keySessions: 5
+      },
+      {
+        id: "mc-03",
+        label: "Microcycle 3",
+        focus: "cycling",
+        keySessions: 2
+      }
+    ]
+
+    const movedUp = moveMicrocycle(draft, "mc-02", "up")
+    expect(movedUp.microcycles.map((microcycle) => microcycle.id)).toEqual([
+      "mc-02",
+      "mc-01",
+      "mc-03"
+    ])
+    expect(
+      movedUp.microcycles.find((microcycle) => microcycle.id === "mc-02")
+    ).toEqual(
+      expect.objectContaining({
+        keySessions: 5,
+        focus: "endurance"
+      })
+    )
+
+    const movedDown = moveMicrocycle(movedUp, "mc-02", "down")
+    expect(movedDown.microcycles.map((microcycle) => microcycle.id)).toEqual([
+      "mc-01",
+      "mc-02",
+      "mc-03"
+    ])
+  })
+
+  it("keeps draft unchanged when microcycle move target is out of bounds", () => {
+    const draft = buildInitialCycleDraft()
+
+    expect(moveMicrocycle(draft, "mc-01", "up")).toEqual(draft)
+    expect(moveMicrocycle(draft, "mc-04", "down")).toEqual(draft)
+    expect(moveMicrocycle(draft, "missing", "down")).toEqual(draft)
+  })
+
+  it("preserves reordered microcycle order through draft serialization", () => {
+    const draft = buildInitialCycleDraft()
+    const movedDraft = moveMicrocycle(draft, "mc-02", "up")
+
+    const parsed = parseCycleDraft(serializeCycleDraft(movedDraft))
+
+    expect(parsed?.microcycles.map((microcycle) => microcycle.id)).toEqual([
+      "mc-02",
+      "mc-01",
+      "mc-03",
+      "mc-04"
     ])
   })
 })

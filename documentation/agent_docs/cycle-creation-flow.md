@@ -22,6 +22,8 @@ The planning surface now includes a guided cycle-creation wizard for web v1. The
     - `buildCycleWarnings`
   - Deterministic microcycle resize:
     - `setMicrocycleCount`
+  - Deterministic microcycle reorder:
+    - `moveMicrocycle`
   - Draft persistence helpers:
     - `serializeCycleDraft`
     - `parseCycleDraft`
@@ -29,6 +31,7 @@ The planning surface now includes a guided cycle-creation wizard for web v1. The
 - `src/features/planning/components/cycle-creation-flow.tsx`
   - Step-based wizard UI
   - Explicit active-goal selection for multi-goal planning
+  - Keyboard-accessible microcycle move-up/move-down controls in Microcycle Details
   - Non-blocking warning display with alternatives
   - Review-step microcycle muscle-map summaries with drill-down links
   - `Save draft` and restore-on-load behavior
@@ -49,10 +52,14 @@ The planning surface now includes a guided cycle-creation wizard for web v1. The
   - mesocycle parameter validation
   - warning generation with alternatives
   - deterministic microcycle resizing
+  - deterministic microcycle reorder and out-of-bounds no-op behavior
+  - reorder persistence through draft serialize/parse
 
 - `src/features/planning/__tests__/cycle-creation-flow.test.tsx`
   - full wizard step-through (goal -> mesocycle -> microcycle -> review)
   - soft warning visibility and proceed-anyway control
+  - keyboard/mouse microcycle reorder controls
+  - reorder persistence after save + restore
   - draft-save + restore on remount
 
 - `src/features/planning/__tests__/microcycle-muscle-summary.test.ts`

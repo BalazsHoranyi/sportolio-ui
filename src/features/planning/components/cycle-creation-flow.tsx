@@ -12,6 +12,7 @@ import { MuscleMap } from "@/features/muscle-map/components/muscle-map"
 import {
   buildCycleWarnings,
   buildInitialCycleDraft,
+  moveMicrocycle,
   parseCycleDraft,
   serializeCycleDraft,
   setMicrocycleCount,
@@ -595,10 +596,11 @@ export function CycleCreationFlow({
           </div>
 
           <div className="space-y-3">
-            {draft.microcycles.map((microcycle) => (
+            {draft.microcycles.map((microcycle, index) => (
               <Card
                 key={microcycle.id}
                 className="grid gap-3 p-3 md:grid-cols-3"
+                aria-label={`${microcycle.id} configuration`}
               >
                 <div className="space-y-2">
                   <Label htmlFor={`microcycle-label-${microcycle.id}`}>
@@ -677,6 +679,43 @@ export function CycleCreationFlow({
                       }))
                     }
                   />
+                </div>
+
+                <div className="md:col-span-3">
+                  <div
+                    role="group"
+                    aria-label={`Reorder ${microcycle.id}`}
+                    className="flex flex-wrap gap-2"
+                  >
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={index === 0}
+                      onClick={() =>
+                        setDraft((current) =>
+                          moveMicrocycle(current, microcycle.id, "up")
+                        )
+                      }
+                      aria-label={`Move ${microcycle.id} up`}
+                    >
+                      Move up
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={index === draft.microcycles.length - 1}
+                      onClick={() =>
+                        setDraft((current) =>
+                          moveMicrocycle(current, microcycle.id, "down")
+                        )
+                      }
+                      aria-label={`Move ${microcycle.id} down`}
+                    >
+                      Move down
+                    </Button>
+                  </div>
                 </div>
               </Card>
             ))}

@@ -10,6 +10,7 @@ You can:
 - Explicitly choose the active priority goal
 - Choose mesocycle strategy (`block`, `dup`, `linear`) and adjust parameters
 - Edit microcycle details (count, focus, key sessions)
+- Reorder microcycles with **Move up** and **Move down** controls
 - Review soft warnings and suggested alternatives
 - Review per-microcycle muscle-map summaries with workout drill-down links
 - Save a draft and continue editing later
@@ -20,15 +21,17 @@ You can:
 2. Complete **Goal & Event Setup**.
 3. Continue to **Mesocycle Strategy** and set your strategy parameters.
 4. Continue to **Microcycle Details** and configure weekly blocks.
-5. Review warnings and alternatives in **Review**.
-6. Review microcycle muscle-map summaries and use drill-down links to inspect mapped workouts.
-7. Use **Save draft** at any time if you want to continue later.
+5. Reorder microcycles as needed with **Move up / Move down** controls.
+6. Review warnings and alternatives in **Review**.
+7. Review microcycle muscle-map summaries and use drill-down links to inspect mapped workouts.
+8. Use **Save draft** at any time if you want to continue later.
 
 ## Validation behavior
 
 - Required structural inputs are validated per step and block progression until fixed.
 - Warnings are non-blocking and include alternatives you can choose to apply.
 - High-overlap muscle indicators are visual-only and do not block progression.
+- Reordered microcycle sequence is preserved when drafts are saved and reloaded.
 
 ## Scope
 

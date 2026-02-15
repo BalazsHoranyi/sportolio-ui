@@ -33,6 +33,20 @@ async function goToReviewStep(user: ReturnType<typeof userEvent.setup>) {
   await user.click(screen.getByRole("button", { name: "Next: Review" }))
 }
 
+async function goToMicrocycleStep(user: ReturnType<typeof userEvent.setup>) {
+  await user.type(screen.getByLabelText("Macro cycle start date"), "2026-03-02")
+
+  await user.type(screen.getByLabelText("Goal title goal-1"), "Deadlift 600 lb")
+  await user.selectOptions(
+    screen.getByLabelText("Goal modality goal-1"),
+    "strength"
+  )
+  await user.type(screen.getByLabelText("Goal event date goal-1"), "2026-06-14")
+
+  await user.click(screen.getByRole("button", { name: "Next: Mesocycle" }))
+  await user.click(screen.getByRole("button", { name: "Next: Microcycles" }))
+}
+
 describe("CycleCreationFlow", () => {
   afterEach(() => {
     localStorage.clear()
@@ -182,5 +196,44 @@ describe("CycleCreationFlow", () => {
     expect(screen.getByText("Loaded saved draft")).toBeVisible()
     expect(screen.getByDisplayValue("Deadlift 600 lb")).toBeVisible()
     expect(screen.getByDisplayValue("2026-03-02")).toBeVisible()
+  })
+
+  it("supports microcycle reordering without losing edited fields", async () => {
+    const user = userEvent.setup()
+    render(<CycleCreationFlow />)
+    await goToMicrocycleStep(user)
+
+    await user.clear(screen.getByLabelText("Key sessions mc-02"))
+    await user.type(screen.getByLabelText("Key sessions mc-02"), "5")
+
+    const moveUpButton = screen.getByRole("button", {
+      name: "Move mc-02 up"
+    })
+    moveUpButton.focus()
+    await user.keyboard("{Enter}")
+
+    expect(screen.getByRole("button", { name: "Move mc-02 up" })).toBeDisabled()
+    expect(screen.getByLabelText("Key sessions mc-02")).toHaveValue(5)
+
+    await user.click(screen.getByRole("button", { name: "Move mc-02 down" }))
+    expect(screen.getByRole("button", { name: "Move mc-01 up" })).toBeDisabled()
+  })
+
+  it("persists reordered microcycle order when draft is saved and restored", async () => {
+    const user = userEvent.setup()
+    const { unmount } = render(<CycleCreationFlow />)
+    await goToMicrocycleStep(user)
+
+    await user.click(screen.getByRole("button", { name: "Move mc-02 up" }))
+    await user.click(screen.getByRole("button", { name: "Save draft" }))
+    unmount()
+
+    render(<CycleCreationFlow />)
+    expect(screen.getByText("Loaded saved draft")).toBeVisible()
+
+    await user.click(screen.getByRole("button", { name: "Next: Mesocycle" }))
+    await user.click(screen.getByRole("button", { name: "Next: Microcycles" }))
+
+    expect(screen.getByRole("button", { name: "Move mc-02 up" })).toBeDisabled()
   })
 })

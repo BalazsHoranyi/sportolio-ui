@@ -113,6 +113,34 @@ export function setMicrocycleCount(
   }
 }
 
+export function moveMicrocycle(
+  draft: CycleDraft,
+  microcycleId: string,
+  direction: "up" | "down"
+): CycleDraft {
+  const currentIndex = draft.microcycles.findIndex(
+    (microcycle) => microcycle.id === microcycleId
+  )
+  if (currentIndex === -1) {
+    return draft
+  }
+
+  const targetIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1
+  if (targetIndex < 0 || targetIndex >= draft.microcycles.length) {
+    return draft
+  }
+
+  const reordered = [...draft.microcycles]
+  const currentEntry = reordered[currentIndex]
+  reordered[currentIndex] = reordered[targetIndex]
+  reordered[targetIndex] = currentEntry
+
+  return {
+    ...draft,
+    microcycles: reordered
+  }
+}
+
 export function validateGoalStep(draft: CycleDraft): string[] {
   const errors: string[] = []
   if (!isIsoDate(draft.macroStartDate)) {
