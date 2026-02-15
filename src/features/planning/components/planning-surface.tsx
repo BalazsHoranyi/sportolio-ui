@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card"
 import { WeeklyAuditChart } from "@/features/audit/components/weekly-audit-chart"
 import { weeklyAuditPreviewData } from "@/features/audit/weekly-audit-preview"
 import { PlanningCalendar } from "@/features/planning/components/planning-calendar"
+import { CycleCreationFlow } from "@/features/planning/components/cycle-creation-flow"
 import type { PlanningChange } from "@/features/planning/planning-operations"
 
 export function PlanningSurface() {
@@ -24,6 +25,8 @@ export function PlanningSurface() {
       </header>
 
       <PlanningCalendar onPlanningChange={setLastChange} />
+
+      <CycleCreationFlow />
 
       <Card className="space-y-3 p-4" aria-label="Audit recompute payload">
         <h2 className="text-base font-medium">

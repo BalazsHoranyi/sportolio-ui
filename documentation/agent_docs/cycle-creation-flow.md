@@ -1,0 +1,56 @@
+# Cycle Creation Flow (SPRT-62)
+
+## Overview
+
+The planning surface now includes a guided cycle-creation wizard for web v1. The flow covers:
+
+- Macro setup via start date + goals/events
+- Mesocycle strategy selection (`block`, `dup`, `linear`) and parameters
+- Microcycle detail editing
+- Review with soft warnings and alternative suggestions
+- Draft-save and continue-editing via local persistence
+
+## Implementation
+
+- `src/features/planning/cycle-creation.ts`
+  - Draft types for goals, mesocycle, and microcycles
+  - Step validators:
+    - `validateGoalStep`
+    - `validateMesocycleStep`
+    - `validateMicrocycleStep`
+  - Soft warning generator:
+    - `buildCycleWarnings`
+  - Deterministic microcycle resize:
+    - `setMicrocycleCount`
+  - Draft persistence helpers:
+    - `serializeCycleDraft`
+    - `parseCycleDraft`
+
+- `src/features/planning/components/cycle-creation-flow.tsx`
+  - Step-based wizard UI
+  - Explicit active-goal selection for multi-goal planning
+  - Non-blocking warning display with alternatives
+  - `Save draft` and restore-on-load behavior
+
+- `src/features/planning/components/planning-surface.tsx`
+  - Cycle creation flow is now composed into the main planning surface.
+
+## Testing
+
+- `src/features/planning/__tests__/cycle-creation.test.ts`
+  - required goal-step validation
+  - active-goal requirement for multi-goal drafts
+  - mesocycle parameter validation
+  - warning generation with alternatives
+  - deterministic microcycle resizing
+
+- `src/features/planning/__tests__/cycle-creation-flow.test.tsx`
+  - full wizard step-through (goal -> mesocycle -> microcycle -> review)
+  - soft warning visibility and proceed-anyway control
+  - draft-save + restore on remount
+
+## Notes
+
+- Warnings are intentionally soft and do not block progression.
+- Structural validity still blocks step transitions.
+- Mobile execution scope is intentionally excluded for this feature.
