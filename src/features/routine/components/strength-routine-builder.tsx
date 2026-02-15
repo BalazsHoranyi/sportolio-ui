@@ -5,6 +5,8 @@ import { useState } from "react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
+import { WeeklyAuditChart } from "@/features/audit/components/weekly-audit-chart"
+import { weeklyAuditPreviewData } from "@/features/audit/weekly-audit-preview"
 import { MuscleMap } from "@/features/muscle-map/components/muscle-map"
 import {
   buildMicrocycleMuscleUsagePayload,
@@ -114,6 +116,8 @@ export function StrengthRoutineBuilder() {
           contributions={microcycleSummary.totals}
         />
       </div>
+
+      <WeeklyAuditChart data={weeklyAuditPreviewData} />
     </main>
   )
 }

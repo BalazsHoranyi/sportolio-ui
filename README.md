@@ -14,3 +14,4 @@ Next.js App Router frontend for Sportolo.
 ## Implemented feature
 
 - `SPRT-67`: strength exercise picker with fuzzy search, facet filters, keyboard selection, and workout-model metadata binding.
+- `SPRT-32`: weekly audit chart with 7-day neural/metabolic/mechanical series, recruitment overlay band, red-zone threshold, and explainability session links.
