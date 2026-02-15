@@ -2,6 +2,36 @@ import { cleanup, render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 
 import { CycleCreationFlow } from "@/features/planning/components/cycle-creation-flow"
+import type { PlanningWorkout } from "@/features/planning/planning-operations"
+
+const INTERFERENCE_AUDIT_STORAGE_KEY =
+  "sportolo.cycle-creation.interference-decisions.v1"
+
+async function goToReviewStep(user: ReturnType<typeof userEvent.setup>) {
+  await user.type(screen.getByLabelText("Macro cycle start date"), "2026-03-02")
+
+  await user.type(screen.getByLabelText("Goal title goal-1"), "Deadlift 600 lb")
+  await user.selectOptions(
+    screen.getByLabelText("Goal modality goal-1"),
+    "strength"
+  )
+  await user.type(screen.getByLabelText("Goal event date goal-1"), "2026-06-14")
+
+  await user.click(screen.getByRole("button", { name: "Add goal" }))
+  await user.type(screen.getByLabelText("Goal title goal-2"), "5k race PR")
+  await user.selectOptions(
+    screen.getByLabelText("Goal modality goal-2"),
+    "endurance"
+  )
+  await user.clear(screen.getByLabelText("Goal priority goal-2"))
+  await user.type(screen.getByLabelText("Goal priority goal-2"), "2")
+  await user.type(screen.getByLabelText("Goal event date goal-2"), "2026-06-17")
+  await user.click(screen.getByLabelText("Active goal goal-1"))
+
+  await user.click(screen.getByRole("button", { name: "Next: Mesocycle" }))
+  await user.click(screen.getByRole("button", { name: "Next: Microcycles" }))
+  await user.click(screen.getByRole("button", { name: "Next: Review" }))
+}
 
 describe("CycleCreationFlow", () => {
   afterEach(() => {
@@ -78,6 +108,57 @@ describe("CycleCreationFlow", () => {
       )
     ).toBeVisible()
     expect(screen.getByLabelText("Proceed anyway")).toBeVisible()
+  })
+
+  it("shows axis-overlap warnings with recovery-window rationale from planner workouts", async () => {
+    const user = userEvent.setup()
+    const plannedWorkouts: PlanningWorkout[] = [
+      {
+        id: "w-1",
+        title: "Back Squat",
+        start: "2026-03-10T08:00:00.000Z",
+        end: "2026-03-10T09:00:00.000Z"
+      },
+      {
+        id: "w-2",
+        title: "Front Squat",
+        start: "2026-03-10T18:00:00.000Z",
+        end: "2026-03-10T19:00:00.000Z"
+      }
+    ]
+
+    render(<CycleCreationFlow plannedWorkouts={plannedWorkouts} />)
+    await goToReviewStep(user)
+
+    expect(screen.getByText(/High-risk axis overlap/i)).toBeVisible()
+    expect(screen.getAllByText(/recovery window/i).length).toBeGreaterThan(0)
+    expect(screen.getAllByText(/Alternative:/).length).toBeGreaterThan(0)
+  })
+
+  it("persists proceed-anyway decisions for later audit review", async () => {
+    const user = userEvent.setup()
+
+    const { unmount } = render(<CycleCreationFlow />)
+    await goToReviewStep(user)
+
+    await user.click(screen.getByLabelText("Proceed anyway"))
+
+    const stored = localStorage.getItem(INTERFERENCE_AUDIT_STORAGE_KEY)
+    expect(stored).not.toBeNull()
+    expect(JSON.parse(stored ?? "[]")).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          proceedAnyway: true
+        })
+      ])
+    )
+
+    unmount()
+    render(<CycleCreationFlow />)
+    await goToReviewStep(user)
+
+    expect(screen.getByText("Proceed decisions")).toBeVisible()
+    expect(screen.getByText(/Proceed anyway selected/)).toBeVisible()
   })
 
   it("supports draft-save and continue-editing after remount", async () => {

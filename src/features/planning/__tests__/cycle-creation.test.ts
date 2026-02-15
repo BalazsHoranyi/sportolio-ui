@@ -5,6 +5,7 @@ import {
   validateGoalStep,
   validateMesocycleStep
 } from "@/features/planning/cycle-creation"
+import type { PlanningWorkout } from "@/features/planning/planning-operations"
 
 describe("cycle-creation domain", () => {
   it("validates required fields in the goals step", () => {
@@ -84,6 +85,63 @@ describe("cycle-creation domain", () => {
       ])
     )
     expect(buildCycleWarnings(draft)[0].alternatives.length).toBeGreaterThan(0)
+  })
+
+  it("flags high-risk axis overlap conflicts inside recovery windows", () => {
+    const draft = buildInitialCycleDraft()
+    const workouts: PlanningWorkout[] = [
+      {
+        id: "w-1",
+        title: "Back Squat",
+        start: "2026-03-10T08:00:00.000Z",
+        end: "2026-03-10T09:00:00.000Z"
+      },
+      {
+        id: "w-2",
+        title: "Front Squat",
+        start: "2026-03-10T19:00:00.000Z",
+        end: "2026-03-10T20:00:00.000Z"
+      }
+    ]
+
+    const warnings = buildCycleWarnings(draft, workouts)
+    const axisWarning = warnings.find(
+      (warning) => warning.code === "axis_overlap"
+    )
+
+    expect(axisWarning).toBeDefined()
+    expect(axisWarning?.severity).toBe("high")
+    expect(axisWarning?.message).toContain("axis overlap")
+    expect(axisWarning?.message).toContain("recovery window")
+    expect(axisWarning?.alternatives.length).toBeGreaterThan(0)
+  })
+
+  it("returns deterministic axis-interference warnings for the same planner input", () => {
+    const draft = buildInitialCycleDraft()
+    const workouts: PlanningWorkout[] = [
+      {
+        id: "w-1",
+        title: "Tempo Run",
+        start: "2026-03-10T06:00:00.000Z",
+        end: "2026-03-10T07:00:00.000Z"
+      },
+      {
+        id: "w-2",
+        title: "Interval Run",
+        start: "2026-03-10T18:00:00.000Z",
+        end: "2026-03-10T19:00:00.000Z"
+      },
+      {
+        id: "w-3",
+        title: "Recovery Ride",
+        start: "2026-03-11T05:00:00.000Z",
+        end: "2026-03-11T06:00:00.000Z"
+      }
+    ]
+
+    expect(buildCycleWarnings(draft, workouts)).toEqual(
+      buildCycleWarnings(draft, workouts)
+    )
   })
 
   it("resizes microcycles deterministically while preserving existing edits", () => {

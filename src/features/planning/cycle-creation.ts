@@ -1,3 +1,5 @@
+import type { PlanningWorkout } from "@/features/planning/planning-operations"
+
 export type GoalModality = "strength" | "endurance" | "cycling" | "triathlon"
 export type MesocycleStrategy = "block" | "dup" | "linear"
 export type MicrocycleFocus = GoalModality
@@ -37,13 +39,14 @@ export type CycleDraft = {
 }
 
 export type CycleWarning = {
-  code: "event_proximity" | "microcycle_overload"
-  severity: "low" | "medium"
+  code: "axis_overlap" | "event_proximity" | "microcycle_overload"
+  severity: "low" | "medium" | "high"
   message: string
   alternatives: string[]
 }
 
 const EVENT_PROXIMITY_DAYS = 7
+const HOUR_MS = 60 * 60 * 1000
 
 const DEFAULT_MESOCYCLE: CycleMesocycleDraft = {
   strategy: "block",
@@ -210,8 +213,211 @@ function dayDifference(leftDate: string, rightDate: string): number {
   return Math.floor(ms / (1000 * 60 * 60 * 24))
 }
 
-export function buildCycleWarnings(draft: CycleDraft): CycleWarning[] {
+type AxisKey = "neural" | "metabolic" | "mechanical"
+
+type InterferenceProfile = {
+  modality: GoalModality | null
+  axes: AxisKey[]
+  recoveryHours: number
+}
+
+const PROFILE_BY_MODALITY: Record<GoalModality, InterferenceProfile> = {
+  strength: {
+    modality: "strength",
+    axes: ["neural", "mechanical"],
+    recoveryHours: 36
+  },
+  endurance: {
+    modality: "endurance",
+    axes: ["metabolic"],
+    recoveryHours: 24
+  },
+  cycling: {
+    modality: "cycling",
+    axes: ["metabolic", "mechanical"],
+    recoveryHours: 30
+  },
+  triathlon: {
+    modality: "triathlon",
+    axes: ["neural", "metabolic", "mechanical"],
+    recoveryHours: 48
+  }
+}
+
+function buildGoalPriorityMap(draft: CycleDraft): Map<GoalModality, number> {
+  const priorityByModality = new Map<GoalModality, number>()
+
+  for (const goal of draft.goals) {
+    const existing = priorityByModality.get(goal.modality)
+    if (existing === undefined || goal.priority < existing) {
+      priorityByModality.set(goal.modality, goal.priority)
+    }
+  }
+
+  return priorityByModality
+}
+
+function inferWorkoutProfile(workoutTitle: string): InterferenceProfile {
+  const normalizedTitle = workoutTitle.trim().toLowerCase()
+  if (!normalizedTitle) {
+    return {
+      modality: null,
+      axes: [],
+      recoveryHours: 0
+    }
+  }
+
+  const strengthKeywords = [
+    "squat",
+    "deadlift",
+    "bench",
+    "press",
+    "pull-up",
+    "row",
+    "olympic"
+  ]
+  if (strengthKeywords.some((keyword) => normalizedTitle.includes(keyword))) {
+    return PROFILE_BY_MODALITY.strength
+  }
+
+  const mixedKeywords = ["triathlon", "metcon", "crossfit", "hyrox", "brick"]
+  if (mixedKeywords.some((keyword) => normalizedTitle.includes(keyword))) {
+    return PROFILE_BY_MODALITY.triathlon
+  }
+
+  const cyclingKeywords = ["bike", "ride", "cycle", "trainer", "zwift"]
+  if (cyclingKeywords.some((keyword) => normalizedTitle.includes(keyword))) {
+    return PROFILE_BY_MODALITY.cycling
+  }
+
+  const enduranceKeywords = ["run", "tempo", "interval", "swim", "rower"]
+  if (enduranceKeywords.some((keyword) => normalizedTitle.includes(keyword))) {
+    return PROFILE_BY_MODALITY.endurance
+  }
+
+  return {
+    modality: null,
+    axes: [],
+    recoveryHours: 0
+  }
+}
+
+function resolveHoursApart(
+  left: PlanningWorkout,
+  right: PlanningWorkout
+): number {
+  const leftEnd = new Date(left.end).getTime()
+  const rightStart = new Date(right.start).getTime()
+  if (Number.isNaN(leftEnd) || Number.isNaN(rightStart)) {
+    return Number.POSITIVE_INFINITY
+  }
+
+  const delta = rightStart - leftEnd
+  return Math.max(0, Math.floor(delta / HOUR_MS))
+}
+
+function sharedAxes(
+  leftProfile: InterferenceProfile,
+  rightProfile: InterferenceProfile
+): AxisKey[] {
+  return leftProfile.axes.filter((axis) => rightProfile.axes.includes(axis))
+}
+
+function resolveMoveTargetTitle(
+  draft: CycleDraft,
+  leftWorkout: PlanningWorkout,
+  leftProfile: InterferenceProfile,
+  rightWorkout: PlanningWorkout,
+  rightProfile: InterferenceProfile
+): string {
+  const priorityByModality = buildGoalPriorityMap(draft)
+  const leftPriority =
+    leftProfile.modality !== null
+      ? (priorityByModality.get(leftProfile.modality) ??
+        Number.MAX_SAFE_INTEGER)
+      : Number.MAX_SAFE_INTEGER
+  const rightPriority =
+    rightProfile.modality !== null
+      ? (priorityByModality.get(rightProfile.modality) ??
+        Number.MAX_SAFE_INTEGER)
+      : Number.MAX_SAFE_INTEGER
+
+  if (leftPriority === rightPriority) {
+    return rightWorkout.title
+  }
+
+  return leftPriority < rightPriority ? rightWorkout.title : leftWorkout.title
+}
+
+function buildAxisOverlapWarnings(
+  draft: CycleDraft,
+  plannedWorkouts: PlanningWorkout[]
+): CycleWarning[] {
+  if (plannedWorkouts.length < 2) {
+    return []
+  }
+
+  const sortedWorkouts = [...plannedWorkouts].sort((left, right) =>
+    left.start.localeCompare(right.start)
+  )
   const warnings: CycleWarning[] = []
+
+  for (let leftIndex = 0; leftIndex < sortedWorkouts.length; leftIndex += 1) {
+    for (
+      let rightIndex = leftIndex + 1;
+      rightIndex < sortedWorkouts.length;
+      rightIndex += 1
+    ) {
+      const leftWorkout = sortedWorkouts[leftIndex]
+      const rightWorkout = sortedWorkouts[rightIndex]
+      const leftProfile = inferWorkoutProfile(leftWorkout.title)
+      const rightProfile = inferWorkoutProfile(rightWorkout.title)
+      const overlap = sharedAxes(leftProfile, rightProfile)
+
+      if (overlap.length === 0) {
+        continue
+      }
+
+      const recoveryWindowHours = Math.max(
+        leftProfile.recoveryHours,
+        rightProfile.recoveryHours
+      )
+      const hoursApart = resolveHoursApart(leftWorkout, rightWorkout)
+      if (hoursApart >= recoveryWindowHours) {
+        continue
+      }
+
+      const moveTargetTitle = resolveMoveTargetTitle(
+        draft,
+        leftWorkout,
+        leftProfile,
+        rightWorkout,
+        rightProfile
+      )
+      const minimumShiftHours = recoveryWindowHours - hoursApart
+      const overlapLabel = overlap.join("/")
+
+      warnings.push({
+        code: "axis_overlap",
+        severity: "high",
+        message: `High-risk axis overlap between ${leftWorkout.title} and ${rightWorkout.title}: shared ${overlapLabel} load is inside the ${recoveryWindowHours}h recovery window.`,
+        alternatives: [
+          `Move ${moveTargetTitle} by at least ${minimumShiftHours}h to clear the recovery window.`,
+          `Swap one session for lower ${overlapLabel} demand while keeping the schedule.`
+        ]
+      })
+    }
+  }
+
+  return warnings
+}
+
+export function buildCycleWarnings(
+  draft: CycleDraft,
+  plannedWorkouts: PlanningWorkout[] = []
+): CycleWarning[] {
+  const warnings: CycleWarning[] = []
+  warnings.push(...buildAxisOverlapWarnings(draft, plannedWorkouts))
   const datedGoals = draft.goals.filter((goal) => isIsoDate(goal.eventDate))
 
   for (let leftIndex = 0; leftIndex < datedGoals.length; leftIndex += 1) {

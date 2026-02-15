@@ -27,6 +27,8 @@ import { buildMicrocycleMuscleSummaries } from "@/features/planning/microcycle-m
 import type { PlanningWorkout } from "@/features/planning/planning-operations"
 
 const DRAFT_STORAGE_KEY = "sportolo.cycle-creation.draft.v1"
+const INTERFERENCE_AUDIT_STORAGE_KEY =
+  "sportolo.cycle-creation.interference-decisions.v1"
 
 const STEP_NAMES = [
   "Goal & Event Setup",
@@ -86,6 +88,12 @@ type CycleCreationFlowProps = {
   plannedWorkouts?: PlanningWorkout[]
 }
 
+type InterferenceProceedDecision = {
+  recordedAt: string
+  proceedAnyway: boolean
+  warningMessages: string[]
+}
+
 export function CycleCreationFlow({
   plannedWorkouts = []
 }: CycleCreationFlowProps) {
@@ -95,8 +103,14 @@ export function CycleCreationFlow({
   )
   const [errors, setErrors] = useState<string[]>([])
   const [statusMessage, setStatusMessage] = useState<string | null>(null)
+  const [proceedDecisions, setProceedDecisions] = useState<
+    InterferenceProceedDecision[]
+  >([])
 
-  const warnings = useMemo(() => buildCycleWarnings(draft), [draft])
+  const warnings = useMemo(
+    () => buildCycleWarnings(draft, plannedWorkouts),
+    [draft, plannedWorkouts]
+  )
   const microcycleSummaries = useMemo(
     () => buildMicrocycleMuscleSummaries(draft, plannedWorkouts),
     [draft, plannedWorkouts]
@@ -115,6 +129,30 @@ export function CycleCreationFlow({
 
     setDraft(withSeedGoal(parsed))
     setStatusMessage("Loaded saved draft")
+  }, [])
+
+  useEffect(() => {
+    const persistedAudit = localStorage.getItem(INTERFERENCE_AUDIT_STORAGE_KEY)
+    if (!persistedAudit) {
+      return
+    }
+
+    try {
+      const parsed = JSON.parse(persistedAudit) as InterferenceProceedDecision[]
+      if (!Array.isArray(parsed)) {
+        return
+      }
+      setProceedDecisions(
+        parsed.filter(
+          (entry) =>
+            typeof entry.recordedAt === "string" &&
+            typeof entry.proceedAnyway === "boolean" &&
+            Array.isArray(entry.warningMessages)
+        )
+      )
+    } catch {
+      setProceedDecisions([])
+    }
   }, [])
 
   const setGoalField = <K extends keyof CycleGoalDraft>(
@@ -199,6 +237,25 @@ export function CycleCreationFlow({
   const saveDraft = () => {
     localStorage.setItem(DRAFT_STORAGE_KEY, serializeCycleDraft(draft))
     setStatusMessage("Draft saved")
+  }
+
+  const recordProceedDecision = (nextProceedAnyway: boolean) => {
+    if (warnings.length === 0) {
+      return
+    }
+
+    const nextDecision: InterferenceProceedDecision = {
+      recordedAt: new Date().toISOString(),
+      proceedAnyway: nextProceedAnyway,
+      warningMessages: warnings.map((warning) => warning.message)
+    }
+
+    setProceedDecisions((current) => {
+      const next = [nextDecision, ...current].slice(0, 20)
+      localStorage.setItem(INTERFERENCE_AUDIT_STORAGE_KEY, JSON.stringify(next))
+      return next
+    })
+    setStatusMessage("Decision recorded")
   }
 
   return (
@@ -665,12 +722,14 @@ export function CycleCreationFlow({
                 <Checkbox
                   id="proceed-anyway"
                   checked={draft.proceedAnyway}
-                  onCheckedChange={(checked) =>
+                  onCheckedChange={(checked) => {
+                    const nextProceedAnyway = checked === true
                     setDraft((current) => ({
                       ...current,
-                      proceedAnyway: checked === true
+                      proceedAnyway: nextProceedAnyway
                     }))
-                  }
+                    recordProceedDecision(nextProceedAnyway)
+                  }}
                 />
                 <Label htmlFor="proceed-anyway">Proceed anyway</Label>
               </div>
@@ -680,6 +739,32 @@ export function CycleCreationFlow({
               No soft warnings detected for this draft.
             </p>
           )}
+
+          {proceedDecisions.length > 0 ? (
+            <Card
+              className="space-y-2 border-slate-200 bg-slate-50 p-3"
+              aria-label="Proceed decisions"
+            >
+              <p className="text-sm font-medium text-slate-800">
+                Proceed decisions
+              </p>
+              <ul className="space-y-2 text-sm text-slate-900">
+                {proceedDecisions.map((decision) => (
+                  <li key={`${decision.recordedAt}-${decision.proceedAnyway}`}>
+                    <p>
+                      {decision.proceedAnyway
+                        ? "Proceed anyway selected"
+                        : "Proceed anyway cleared"}{" "}
+                      ({new Date(decision.recordedAt).toLocaleString()})
+                    </p>
+                    <p className="text-slate-600">
+                      Captured warnings: {decision.warningMessages.length}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            </Card>
+          ) : null}
 
           <section
             className="space-y-3"
