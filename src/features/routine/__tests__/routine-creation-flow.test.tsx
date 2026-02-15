@@ -115,6 +115,110 @@ describe("RoutineCreationFlow", () => {
     expect(within(selectedExercises).getByText("Back Squat")).toBeVisible()
   })
 
+  it("surfaces lint warnings for risky DSL constructs without blocking valid apply", async () => {
+    const user = userEvent.setup()
+
+    render(<RoutineCreationFlow />)
+
+    await user.click(screen.getByRole("button", { name: "DSL" }))
+
+    const dslEditor = screen.getByLabelText("Routine DSL editor")
+    fireEvent.change(dslEditor, {
+      target: {
+        value: JSON.stringify(
+          {
+            name: "Warning Builder",
+            path: "strength",
+            strength: {
+              exerciseIds: ["ex-1"],
+              variables: [],
+              blocks: [
+                {
+                  id: "block-1",
+                  name: "Primary block",
+                  repeatCount: 1,
+                  condition: "",
+                  exercises: [
+                    {
+                      id: "entry-1",
+                      exerciseId: "ex-1",
+                      condition: "",
+                      sets: [
+                        {
+                          id: "set-1",
+                          reps: 5,
+                          load: "100kg",
+                          restSeconds: 120,
+                          timerSeconds: null,
+                          progression: {
+                            strategy: "linear",
+                            value: ""
+                          },
+                          condition: ""
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            endurance: {
+              timeline: [
+                {
+                  kind: "interval",
+                  id: "int-1",
+                  label: "Steady",
+                  durationSeconds: 300,
+                  targetType: "power",
+                  targetValue: 250
+                }
+              ],
+              reusableBlocks: []
+            }
+          },
+          null,
+          2
+        )
+      }
+    })
+
+    expect(
+      screen.getByText(/requires a non-empty progression value/i)
+    ).toBeVisible()
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole("button", { name: "Visual" }))
+    expect(screen.getByLabelText("Routine name")).toHaveValue("Warning Builder")
+  })
+
+  it("shows inline DSL primitive docs for advanced editing guidance", async () => {
+    const user = userEvent.setup()
+
+    render(<RoutineCreationFlow />)
+
+    await user.click(screen.getByRole("button", { name: "DSL" }))
+
+    expect(
+      screen.getByRole("heading", {
+        name: "DSL primitive reference"
+      })
+    ).toBeVisible()
+    expect(screen.getByText("strength.variables")).toBeVisible()
+    expect(screen.getByText("endurance.timeline")).toBeVisible()
+  })
+
+  it("indicates syntax highlighting and autocomplete support in DSL mode", async () => {
+    const user = userEvent.setup()
+
+    render(<RoutineCreationFlow />)
+
+    await user.click(screen.getByRole("button", { name: "DSL" }))
+
+    expect(
+      screen.getByText(/Syntax highlighting and autocomplete enabled/i)
+    ).toBeVisible()
+  })
+
   it("applies valid DSL edits back into visual endurance fields without data loss", async () => {
     const user = userEvent.setup()
 

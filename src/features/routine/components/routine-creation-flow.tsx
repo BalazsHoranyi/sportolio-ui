@@ -11,8 +11,11 @@ import { AppShell } from "@/components/layout/app-shell"
 import { EXERCISE_CATALOG } from "@/features/exercises/catalog"
 import type { Exercise } from "@/features/exercises/types"
 import {
+  analyzeRoutineDsl,
+  ROUTINE_DSL_PRIMITIVES
+} from "@/features/routine/routine-dsl-diagnostics"
+import {
   buildInitialRoutineDraft,
-  parseRoutineDsl,
   serializeRoutineDraft
 } from "@/features/routine/routine-dsl"
 import {
@@ -24,6 +27,7 @@ import {
 } from "@/features/routine/routine-template-library"
 import { StrengthExercisePicker } from "@/features/routine/components/strength-exercise-picker"
 import { EnduranceTimelineBuilder } from "@/features/routine/components/endurance-timeline-builder"
+import { RoutineDslEditor } from "@/features/routine/components/routine-dsl-editor"
 import type {
   EnduranceTargetType,
   RoutineDraft,
@@ -148,7 +152,8 @@ export function RoutineCreationFlow() {
   const [dslValue, setDslValue] = useState<string>(() =>
     serializeRoutineDraft(INITIAL_ROUTINE_DRAFT)
   )
-  const [dslError, setDslError] = useState<string | null>(null)
+  const [dslErrors, setDslErrors] = useState<string[]>([])
+  const [dslWarnings, setDslWarnings] = useState<string[]>([])
   const draft = history.present
   const canUndo = history.past.length > 0
   const canRedo = history.future.length > 0
@@ -209,8 +214,11 @@ export function RoutineCreationFlow() {
         }))
       }
 
-      setDslValue(options?.dslBuffer ?? serializeRoutineDraft(nextDraft))
-      setDslError(null)
+      const serialized = options?.dslBuffer ?? serializeRoutineDraft(nextDraft)
+      const diagnostics = analyzeRoutineDsl(serialized)
+      setDslValue(serialized)
+      setDslErrors(diagnostics.errors.map((error) => error.message))
+      setDslWarnings(diagnostics.warnings.map((warning) => warning.message))
     },
     [history.present]
   )
@@ -240,8 +248,11 @@ export function RoutineCreationFlow() {
         future: [current.present, ...current.future]
       }
     })
-    setDslValue(serializeRoutineDraft(previousDraft))
-    setDslError(null)
+    const serialized = serializeRoutineDraft(previousDraft)
+    const diagnostics = analyzeRoutineDsl(serialized)
+    setDslValue(serialized)
+    setDslErrors(diagnostics.errors.map((error) => error.message))
+    setDslWarnings(diagnostics.warnings.map((warning) => warning.message))
   }, [canUndo, history.past])
 
   const redo = useCallback(() => {
@@ -262,8 +273,11 @@ export function RoutineCreationFlow() {
         future: remainingFuture
       }
     })
-    setDslValue(serializeRoutineDraft(nextDraft))
-    setDslError(null)
+    const serialized = serializeRoutineDraft(nextDraft)
+    const diagnostics = analyzeRoutineDsl(serialized)
+    setDslValue(serialized)
+    setDslErrors(diagnostics.errors.map((error) => error.message))
+    setDslWarnings(diagnostics.warnings.map((warning) => warning.message))
   }, [canRedo, history.future])
 
   useEffect(() => {
@@ -303,8 +317,11 @@ export function RoutineCreationFlow() {
     setMode(nextMode)
 
     if (nextMode === "dsl") {
-      setDslValue(serializeRoutineDraft(draft))
-      setDslError(null)
+      const serialized = serializeRoutineDraft(draft)
+      const diagnostics = analyzeRoutineDsl(serialized)
+      setDslValue(serialized)
+      setDslErrors(diagnostics.errors.map((error) => error.message))
+      setDslWarnings(diagnostics.warnings.map((warning) => warning.message))
     }
   }
 
@@ -1563,35 +1580,70 @@ export function RoutineCreationFlow() {
         </Card>
       ) : (
         <Card className="space-y-3 p-4">
-          <Label htmlFor="routine-dsl-editor">Routine DSL editor</Label>
-          <textarea
+          <RoutineDslEditor
             id="routine-dsl-editor"
-            aria-label="Routine DSL editor"
-            className="min-h-[300px] w-full rounded-md border px-3 py-2 font-mono text-sm"
-            spellCheck={false}
             value={dslValue}
-            onChange={(event) => {
-              const nextValue = event.target.value
+            label="Routine DSL editor"
+            onChange={(nextValue) => {
               setDslValue(nextValue)
-
-              const parseResult = parseRoutineDsl(nextValue)
-              if (!parseResult.ok) {
-                setDslError(parseResult.error)
+              const diagnostics = analyzeRoutineDsl(nextValue)
+              setDslErrors(diagnostics.errors.map((error) => error.message))
+              setDslWarnings(
+                diagnostics.warnings.map((warning) => warning.message)
+              )
+              if (!diagnostics.parseResult.ok) {
                 return
               }
 
-              commitDraft(parseResult.draft, { dslBuffer: nextValue })
+              commitDraft(diagnostics.parseResult.draft, {
+                dslBuffer: nextValue
+              })
             }}
           />
-          {dslError ? (
-            <p role="alert" className="text-sm text-red-700">
-              {dslError}
-            </p>
-          ) : (
+          {dslErrors.length > 0 ? (
+            <ul role="alert" className="space-y-1 text-sm text-red-700">
+              {dslErrors.map((error) => (
+                <li key={error}>{error}</li>
+              ))}
+            </ul>
+          ) : null}
+          {dslWarnings.length > 0 ? (
+            <div className="space-y-2 rounded-md border border-amber-200 bg-amber-50 p-3">
+              <p className="text-sm font-medium text-amber-900">
+                Non-blocking safety warnings
+              </p>
+              <ul
+                aria-label="DSL lint warnings"
+                className="list-disc space-y-1 pl-4 text-sm text-amber-900"
+              >
+                {dslWarnings.map((warning) => (
+                  <li key={warning}>{warning}</li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+          {dslErrors.length === 0 && dslWarnings.length === 0 ? (
             <p className="text-sm text-muted-foreground">
               DSL is synchronized with visual mode for supported routine fields.
             </p>
-          )}
+          ) : null}
+
+          <section className="space-y-2 rounded-md border bg-muted/30 p-3">
+            <h2 className="text-sm font-semibold">DSL primitive reference</h2>
+            <ul className="space-y-2">
+              {ROUTINE_DSL_PRIMITIVES.map((primitive) => (
+                <li key={primitive.primitive} className="space-y-1 text-sm">
+                  <p className="font-medium">{primitive.primitive}</p>
+                  <p className="text-muted-foreground">
+                    {primitive.description}
+                  </p>
+                  <pre className="overflow-x-auto rounded-md bg-muted p-2 text-xs">
+                    {primitive.example}
+                  </pre>
+                </li>
+              ))}
+            </ul>
+          </section>
         </Card>
       )}
 

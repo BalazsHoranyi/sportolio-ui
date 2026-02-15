@@ -23,6 +23,16 @@ If DSL input is invalid, the editor shows an inline error with actionable guidan
 Your last valid routine state is preserved, so switching back to Visual mode is safe.
 This includes partially invalid payload edits: invalid changes are rejected, and the last valid state stays active.
 
+## Advanced DSL editor safeguards
+
+DSL mode now includes:
+
+- syntax highlighting and autocomplete support in the editor surface
+- non-blocking lint warnings for risky constructs (for example missing progression values or unusually large repeat/interval values)
+- a primitive reference panel with examples for common keys (`path`, `strength.variables`, `endurance.timeline`, `templateSource`)
+
+Only structurally invalid DSL blocks commit. Warning-only payloads can still be applied.
+
 ## Undo/Redo history
 
 You can undo and redo committed routine edits from either editing mode.

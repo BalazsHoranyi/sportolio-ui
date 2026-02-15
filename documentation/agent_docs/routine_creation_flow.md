@@ -52,6 +52,27 @@ Validation guarantees include:
   - `context`: `macro | meso | micro`
   - `ownerRole`: `athlete | coach`
 
+`src/features/routine/routine-dsl-diagnostics.ts` adds a second-stage diagnostics
+pipeline on top of structural parsing:
+
+- **blocking structural diagnostics** (`dsl-structure-invalid`)
+  - driven by `parseRoutineDsl(...)`
+  - these prevent DSL commits from mutating the visual draft
+- **non-blocking lint/safety warnings**
+  - progression warnings:
+    - `progression-missing-value`
+    - `progression-unused-value`
+  - high-risk thresholds:
+    - `strength-block-high-repeat-count`
+    - `set-high-rep-range`
+    - `set-long-rest-window`
+    - `set-long-timer-window`
+    - `interval-long-duration`
+    - `endurance-block-high-repeat-count`
+- **primitive reference catalog**
+  - shared source for inline DSL docs and editor completion suggestions
+  - exposed via `ROUTINE_DSL_PRIMITIVES` and `ROUTINE_DSL_COMPLETIONS`
+
 ## UI Behavior
 
 - Mode switches (`Visual`/`DSL`) use toggle buttons with `aria-pressed`.
@@ -59,8 +80,15 @@ Validation guarantees include:
 - Every visual edit commits immediately to DSL state.
 - Every valid DSL edit commits immediately to visual state.
 - Invalid or partially invalid DSL edits do not clobber last valid committed state.
+- DSL warnings for high-risk but structurally valid payloads are rendered inline
+  and **do not block** commit.
 - Undo/redo controls are available in the form header and are keyboard-addressable (`Ctrl/Cmd+Z`, `Ctrl/Cmd+Y`, `Ctrl/Cmd+Shift+Z`).
 - A payload preview card exposes the current synchronized routine JSON as a parity hook.
+- DSL mode uses `RoutineDslEditor` (`src/features/routine/components/routine-dsl-editor.tsx`):
+  - app runtime: CodeMirror-backed editor with JSON syntax highlighting + autocomplete
+  - test runtime: deterministic textarea fallback to keep component tests stable
+  - completion triggers are documented inline (`Ctrl/Cmd + Space`)
+- DSL mode includes a primitive reference section for inline authoring guidance.
 - Strength visual mode additionally supports:
   - custom variable add/edit/remove
   - block loop counts and block condition editing
@@ -80,6 +108,8 @@ Validation guarantees include:
   - path and mode switching
   - DSL -> visual synchronization
   - invalid DSL inline error and valid-state preservation
+  - warning-only DSL diagnostics that remain non-blocking
+  - inline primitive docs + editor capability indicators
   - undo/redo history for visual edits
   - undo/redo history for DSL edits
   - partially invalid DSL conflict handling
@@ -92,6 +122,10 @@ Validation guarantees include:
   - strength ID dedupe behavior
   - Liftosaur-like advanced strength fixture parity
   - template source parse and validation behavior
+- `src/features/routine/__tests__/routine-dsl-diagnostics.test.ts`
+  - blocking-vs-warning classification
+  - progression warning behavior
+  - unsafe range lint diagnostics
 - `src/features/routine/__tests__/routine-template-library.test.ts`
   - template save metadata normalization
   - modality/tag filtering
