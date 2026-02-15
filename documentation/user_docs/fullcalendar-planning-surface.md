@@ -9,6 +9,8 @@ You can now plan workouts on a FullCalendar-based surface with:
 - Move workout by drag/drop
 - Remove workout from calendar
 - Keyboard-accessible move/remove controls in the workout list
+- Weekly and monthly audit charts that refresh from the current planner state
+- Immediate day-level explainability/session-link reflow after workout moves
 
 ## How to use
 
@@ -17,6 +19,7 @@ You can now plan workouts on a FullCalendar-based surface with:
 3. Use **Week view** or **Month view**.
 4. Move or remove workouts as needed.
 5. Confirm updates in the **Latest audit recompute payload** section.
+6. Confirm the **Weekly Audit Chart** / **Month Audit View** update immediately after each change.
 
 ## Accessibility
 

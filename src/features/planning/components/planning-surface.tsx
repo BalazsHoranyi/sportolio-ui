@@ -1,15 +1,14 @@
 "use client"
 
-import { useState } from "react"
+import { useMemo, useState } from "react"
 
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { AppShell } from "@/components/layout/app-shell"
 import { MonthlyAuditChart } from "@/features/audit/components/monthly-audit-chart"
 import { WeeklyAuditChart } from "@/features/audit/components/weekly-audit-chart"
-import { monthlyAuditPreviewData } from "@/features/audit/monthly-audit-preview"
-import { weeklyAuditPreviewData } from "@/features/audit/weekly-audit-preview"
 import { PlanningCalendar } from "@/features/planning/components/planning-calendar"
+import { buildPlannedAuditReflow } from "@/features/planning/planning-audit-reflow"
 import { CycleCreationFlow } from "@/features/planning/components/cycle-creation-flow"
 import type {
   PlanningChange,
@@ -20,6 +19,10 @@ export function PlanningSurface() {
   const [lastChange, setLastChange] = useState<PlanningChange | null>(null)
   const [plannedWorkouts, setPlannedWorkouts] = useState<PlanningWorkout[]>([])
   const [auditView, setAuditView] = useState<"week" | "month">("week")
+  const auditData = useMemo(
+    () => buildPlannedAuditReflow(plannedWorkouts),
+    [plannedWorkouts]
+  )
 
   return (
     <AppShell
@@ -76,9 +79,9 @@ export function PlanningSurface() {
       </Card>
 
       {auditView === "week" ? (
-        <WeeklyAuditChart data={weeklyAuditPreviewData} />
+        <WeeklyAuditChart data={auditData.weekly} />
       ) : (
-        <MonthlyAuditChart data={monthlyAuditPreviewData} />
+        <MonthlyAuditChart data={auditData.monthly} />
       )}
     </AppShell>
   )
