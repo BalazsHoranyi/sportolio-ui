@@ -6,6 +6,7 @@ import type { WeeklyAuditChartData } from "@/features/audit/types"
 
 const chartData: WeeklyAuditChartData = {
   weekLabel: "Week of Feb 10, 2026",
+  seriesState: "completed",
   days: [
     {
       dayLabel: "Mon",
@@ -104,6 +105,14 @@ describe("WeeklyAuditChart", () => {
 
     const primaryLegend = screen.getByLabelText("Primary axis legend")
     expect(within(primaryLegend).getAllByRole("listitem")).toHaveLength(3)
+
+    const seriesStateLegend = screen.getByLabelText("Series state legend")
+    expect(
+      within(seriesStateLegend).getByText("Completed (solid)")
+    ).toBeVisible()
+    expect(
+      within(seriesStateLegend).getByText("Planned (dashed)")
+    ).toBeVisible()
   })
 
   it("renders recruitment as an overlay band and keeps it out of the primary legend", () => {
@@ -122,6 +131,39 @@ describe("WeeklyAuditChart", () => {
 
     expect(screen.getByLabelText("Red zone threshold at 7.0")).toBeVisible()
     expect(screen.getByText("Red zone >= 7.0")).toBeVisible()
+  })
+
+  it("renders completed series with solid strokes", () => {
+    render(
+      <WeeklyAuditChart data={{ ...chartData, seriesState: "completed" }} />
+    )
+
+    expect(screen.getByLabelText("Neural axis series")).not.toHaveAttribute(
+      "stroke-dasharray"
+    )
+    expect(screen.getByLabelText("Metabolic axis series")).not.toHaveAttribute(
+      "stroke-dasharray"
+    )
+    expect(screen.getByLabelText("Mechanical axis series")).not.toHaveAttribute(
+      "stroke-dasharray"
+    )
+  })
+
+  it("renders planned series with dashed strokes", () => {
+    render(<WeeklyAuditChart data={{ ...chartData, seriesState: "planned" }} />)
+
+    expect(screen.getByLabelText("Neural axis series")).toHaveAttribute(
+      "stroke-dasharray",
+      "6 4"
+    )
+    expect(screen.getByLabelText("Metabolic axis series")).toHaveAttribute(
+      "stroke-dasharray",
+      "6 4"
+    )
+    expect(screen.getByLabelText("Mechanical axis series")).toHaveAttribute(
+      "stroke-dasharray",
+      "6 4"
+    )
   })
 
   it("shows explainability links inside the day tooltip on hover and keyboard focus", async () => {

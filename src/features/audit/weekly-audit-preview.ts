@@ -2,6 +2,7 @@ import type { WeeklyAuditChartData } from "@/features/audit/types"
 
 export const weeklyAuditPreviewData: WeeklyAuditChartData = {
   weekLabel: "Week of Feb 10, 2026",
+  seriesState: "completed",
   days: [
     {
       dayLabel: "Mon",

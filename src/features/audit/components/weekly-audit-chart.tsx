@@ -3,6 +3,11 @@
 import { useState } from "react"
 
 import { Card } from "@/components/ui/card"
+import {
+  AUDIT_SERIES_STATE_LEGEND,
+  getAuditSeriesStyle,
+  normalizeAuditSeriesState
+} from "@/features/audit/chart-style-contract"
 import type { WeeklyAuditChartData } from "@/features/audit/types"
 
 const CHART_HEIGHT = 280
@@ -36,6 +41,8 @@ function formatPath(points: { x: number; y: number }[]) {
 
 export function WeeklyAuditChart({ data }: { data: WeeklyAuditChartData }) {
   const [activeIndex, setActiveIndex] = useState(0)
+  const seriesState = normalizeAuditSeriesState(data.seriesState)
+  const seriesStyle = getAuditSeriesStyle(seriesState)
   const days = data.days
 
   if (days.length !== 7) {
@@ -146,6 +153,7 @@ export function WeeklyAuditChart({ data }: { data: WeeklyAuditChartData }) {
             stroke={PRIMARY_SERIES_COLORS.neural}
             strokeWidth={2.25}
             strokeLinecap="round"
+            strokeDasharray={seriesStyle.strokeDasharray}
             aria-label="Neural axis series"
           />
           <path
@@ -154,6 +162,7 @@ export function WeeklyAuditChart({ data }: { data: WeeklyAuditChartData }) {
             stroke={PRIMARY_SERIES_COLORS.metabolic}
             strokeWidth={2.25}
             strokeLinecap="round"
+            strokeDasharray={seriesStyle.strokeDasharray}
             aria-label="Metabolic axis series"
           />
           <path
@@ -162,6 +171,7 @@ export function WeeklyAuditChart({ data }: { data: WeeklyAuditChartData }) {
             stroke={PRIMARY_SERIES_COLORS.mechanical}
             strokeWidth={2.25}
             strokeLinecap="round"
+            strokeDasharray={seriesStyle.strokeDasharray}
             aria-label="Mechanical axis series"
           />
 
@@ -189,34 +199,72 @@ export function WeeklyAuditChart({ data }: { data: WeeklyAuditChartData }) {
       </div>
 
       <div className="flex flex-wrap items-start justify-between gap-4">
-        <ul
-          className="flex flex-wrap gap-3 text-sm"
-          aria-label="Primary axis legend"
-        >
-          <li className="inline-flex items-center gap-2">
-            <span
-              className="inline-block h-2.5 w-2.5 rounded-full"
-              style={{ backgroundColor: PRIMARY_SERIES_COLORS.neural }}
-            />
-            Neural
-          </li>
-          <li className="inline-flex items-center gap-2">
-            <span
-              className="inline-block h-2.5 w-2.5 rounded-full"
-              style={{ backgroundColor: PRIMARY_SERIES_COLORS.metabolic }}
-            />
-            Metabolic
-          </li>
-          <li className="inline-flex items-center gap-2">
-            <span
-              className="inline-block h-2.5 w-2.5 rounded-full"
-              style={{ backgroundColor: PRIMARY_SERIES_COLORS.mechanical }}
-            />
-            Mechanical
-          </li>
-        </ul>
+        <div className="space-y-2">
+          <ul
+            className="flex flex-wrap gap-3 text-sm"
+            aria-label="Primary axis legend"
+          >
+            <li className="inline-flex items-center gap-2">
+              <span
+                className="inline-block h-2.5 w-2.5 rounded-full"
+                style={{ backgroundColor: PRIMARY_SERIES_COLORS.neural }}
+              />
+              Neural
+            </li>
+            <li className="inline-flex items-center gap-2">
+              <span
+                className="inline-block h-2.5 w-2.5 rounded-full"
+                style={{ backgroundColor: PRIMARY_SERIES_COLORS.metabolic }}
+              />
+              Metabolic
+            </li>
+            <li className="inline-flex items-center gap-2">
+              <span
+                className="inline-block h-2.5 w-2.5 rounded-full"
+                style={{ backgroundColor: PRIMARY_SERIES_COLORS.mechanical }}
+              />
+              Mechanical
+            </li>
+          </ul>
 
-        <div className="text-sm text-red-800">Red zone &gt;= 7.0</div>
+          <ul
+            className="flex flex-wrap gap-3 text-sm text-muted-foreground"
+            aria-label="Series state legend"
+          >
+            {AUDIT_SERIES_STATE_LEGEND.map((item) => {
+              const style = getAuditSeriesStyle(item.state)
+              return (
+                <li key={item.state} className="inline-flex items-center gap-2">
+                  <svg
+                    viewBox="0 0 24 8"
+                    className="h-2 w-6"
+                    aria-hidden="true"
+                    focusable="false"
+                  >
+                    <line
+                      x1={0}
+                      y1={4}
+                      x2={24}
+                      y2={4}
+                      stroke="#111827"
+                      strokeWidth={2}
+                      strokeDasharray={style.strokeDasharray}
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                  {item.label}
+                </li>
+              )
+            })}
+          </ul>
+        </div>
+
+        <div className="space-y-1 text-right text-sm text-red-800">
+          <p>Red zone &gt;= 7.0</p>
+          <p className="text-xs text-muted-foreground">
+            Viewing {seriesState} series
+          </p>
+        </div>
       </div>
 
       <ul

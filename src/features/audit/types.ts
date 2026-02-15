@@ -16,5 +16,6 @@ export type WeeklyAuditDay = {
 
 export type WeeklyAuditChartData = {
   weekLabel: string
+  seriesState?: string | null
   days: WeeklyAuditDay[]
 }
