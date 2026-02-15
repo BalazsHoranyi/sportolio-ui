@@ -1,5 +1,8 @@
 export type RoutinePath = "strength" | "endurance"
 export type RoutineMode = "visual" | "dsl"
+export type RoutineTemplateOwnerRole = "athlete" | "coach"
+export type RoutineTemplateVisibility = "private" | "shared"
+export type RoutineTemplateContext = "macro" | "meso" | "micro"
 export type EnduranceTargetType = "power" | "pace" | "hr" | "cadence"
 export type StrengthProgressionStrategy =
   | "none"
@@ -69,6 +72,27 @@ export type EnduranceReusableBlock = {
   block: EnduranceBlockNode
 }
 
+export type RoutineTemplateSource = {
+  templateId: string
+  templateName: string
+  context: RoutineTemplateContext
+  ownerRole: RoutineTemplateOwnerRole
+  ownerId: string
+  instantiatedAt: string
+}
+
+export type RoutineTemplate = {
+  id: string
+  name: string
+  path: RoutinePath
+  tags: string[]
+  ownerRole: RoutineTemplateOwnerRole
+  ownerId: string
+  visibility: RoutineTemplateVisibility
+  createdAt: string
+  routine: RoutineDraft
+}
+
 export type RoutineDraft = {
   name: string
   path: RoutinePath
@@ -81,4 +105,5 @@ export type RoutineDraft = {
     timeline: EnduranceTimelineNode[]
     reusableBlocks: EnduranceReusableBlock[]
   }
+  templateSource?: RoutineTemplateSource
 }

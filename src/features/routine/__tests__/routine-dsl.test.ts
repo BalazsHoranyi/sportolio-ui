@@ -408,6 +408,95 @@ describe("routine-dsl", () => {
     expect(result.draft.endurance.reusableBlocks).toEqual([])
   })
 
+  it("parses template source attribution when present", () => {
+    const result = parseRoutineDsl(
+      JSON.stringify(
+        {
+          name: "Template Instance",
+          path: "strength",
+          strength: {
+            exerciseIds: ["ex-1"]
+          },
+          endurance: {
+            intervals: [
+              {
+                id: "int-1",
+                label: "steady",
+                durationSeconds: 300,
+                targetType: "power",
+                targetValue: 250
+              }
+            ]
+          },
+          templateSource: {
+            templateId: "tpl-1",
+            templateName: "Coach Builder",
+            context: "micro",
+            ownerRole: "coach",
+            ownerId: "coach-1",
+            instantiatedAt: "2026-02-15T07:31:00.000Z"
+          }
+        },
+        null,
+        2
+      )
+    )
+
+    expect(result.ok).toBe(true)
+    if (!result.ok) {
+      throw new Error("Expected parse success")
+    }
+
+    expect(result.draft.templateSource).toEqual({
+      templateId: "tpl-1",
+      templateName: "Coach Builder",
+      context: "micro",
+      ownerRole: "coach",
+      ownerId: "coach-1",
+      instantiatedAt: "2026-02-15T07:31:00.000Z"
+    })
+  })
+
+  it("rejects invalid template source context values", () => {
+    const result = parseRoutineDsl(
+      JSON.stringify(
+        {
+          name: "Template Instance",
+          path: "strength",
+          strength: {
+            exerciseIds: ["ex-1"]
+          },
+          endurance: {
+            intervals: [
+              {
+                id: "int-1",
+                label: "steady",
+                durationSeconds: 300,
+                targetType: "power",
+                targetValue: 250
+              }
+            ]
+          },
+          templateSource: {
+            templateId: "tpl-1",
+            templateName: "Coach Builder",
+            context: "weekly",
+            ownerRole: "coach",
+            ownerId: "coach-1",
+            instantiatedAt: "2026-02-15T07:31:00.000Z"
+          }
+        },
+        null,
+        2
+      )
+    )
+
+    expect(result).toEqual({
+      ok: false,
+      error: "Set `templateSource.context` to `macro`, `meso`, or `micro`."
+    })
+  })
+
   it("supports Liftosaur-like advanced strength constructs without lossy parsing", () => {
     const advancedPayload = {
       name: "Advanced Strength Builder",

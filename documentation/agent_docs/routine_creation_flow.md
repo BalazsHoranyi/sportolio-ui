@@ -1,4 +1,4 @@
-# Routine Creation Flow (SPRT-63, SPRT-21)
+# Routine Creation Flow (SPRT-63, SPRT-21, SPRT-25)
 
 ## Overview
 
@@ -20,6 +20,16 @@ Routine state lives in `RoutineDraft` (`src/features/routine/types.ts`):
 - `strength.blocks[]`: loopable strength blocks (`id`, `name`, `repeatCount`, `condition`, `exercises[]`)
 - `strength.blocks[].exercises[].sets[]`: set-level load/reps/rest/timer/progression/condition fields
 - `endurance.timeline[]`: timeline nodes (`interval` or nested `block`)
+- optional `templateSource`: template attribution metadata on instantiated routines
+  - `templateId`, `templateName`, `context`, `ownerRole`, `ownerId`, `instantiatedAt`
+
+Template metadata and workflows are implemented in:
+
+- `src/features/routine/routine-template-library.ts`
+  - `buildRoutineTemplate(...)`
+  - `filterRoutineTemplates(...)`
+  - `canInstantiateRoutineTemplate(...)`
+  - `instantiateRoutineTemplate(...)`
 
 ## DSL Contract
 
@@ -38,6 +48,9 @@ Validation guarantees include:
 - `strength.variables` and `strength.blocks` schema validation when provided
 - legacy strength payloads are hydrated with default `variables` and `blocks`
 - at least one endurance interval with valid numeric fields and target type
+- optional `templateSource` validation with strict enum checks for:
+  - `context`: `macro | meso | micro`
+  - `ownerRole`: `athlete | coach`
 
 ## UI Behavior
 
@@ -54,6 +67,12 @@ Validation guarantees include:
   - per-exercise condition editing
   - set-level progression, progression value, rest, and timer controls
   - exercise reorder via drag/drop and keyboard move actions
+- Template library card supports:
+  - saving current routine as reusable template
+  - filtering templates by modality and tags
+  - role-aware instantiation into `macro` / `meso` / `micro`
+  - permission behavior for coach-owned shared templates consumed by athletes
+  - template source attribution persisted in the routine payload preview
 
 ## Tests
 
@@ -72,3 +91,11 @@ Validation guarantees include:
   - syntax and schema validation paths
   - strength ID dedupe behavior
   - Liftosaur-like advanced strength fixture parity
+  - template source parse and validation behavior
+- `src/features/routine/__tests__/routine-template-library.test.ts`
+  - template save metadata normalization
+  - modality/tag filtering
+  - independent instantiation with source attribution
+  - permission denial for private coach templates
+- `src/app/__tests__/routine-page.test.tsx`
+  - `/routine` route render smoke test for manual-flow accessibility

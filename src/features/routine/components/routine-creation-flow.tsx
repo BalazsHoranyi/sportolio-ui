@@ -14,6 +14,13 @@ import {
   parseRoutineDsl,
   serializeRoutineDraft
 } from "@/features/routine/routine-dsl"
+import {
+  buildRoutineTemplate,
+  canInstantiateRoutineTemplate,
+  filterRoutineTemplates,
+  instantiateRoutineTemplate,
+  parseTemplateTagInput
+} from "@/features/routine/routine-template-library"
 import { StrengthExercisePicker } from "@/features/routine/components/strength-exercise-picker"
 import { EnduranceTimelineBuilder } from "@/features/routine/components/endurance-timeline-builder"
 import type {
@@ -21,12 +28,20 @@ import type {
   RoutineDraft,
   RoutineMode,
   RoutinePath,
+  RoutineTemplate,
+  RoutineTemplateContext,
+  RoutineTemplateOwnerRole,
+  RoutineTemplateVisibility,
   StrengthExerciseEntryDraft,
   StrengthProgressionStrategy
 } from "@/features/routine/types"
 
 const TARGET_TYPES: EnduranceTargetType[] = ["power", "pace", "hr", "cadence"]
 const INITIAL_ROUTINE_DRAFT = buildInitialRoutineDraft()
+const USER_IDS_BY_ROLE: Record<RoutineTemplateOwnerRole, string> = {
+  athlete: "athlete-1",
+  coach: "coach-1"
+}
 
 type DraftHistory = {
   past: RoutineDraft[]
@@ -118,6 +133,10 @@ function moveItem<T>(items: T[], fromIndex: number, toIndex: number): T[] {
   return next
 }
 
+function parseTagFilter(value: string): string[] {
+  return parseTemplateTagInput(value)
+}
+
 export function RoutineCreationFlow() {
   const [mode, setMode] = useState<RoutineMode>("visual")
   const [history, setHistory] = useState<DraftHistory>(() => ({
@@ -133,6 +152,24 @@ export function RoutineCreationFlow() {
   const canUndo = history.past.length > 0
   const canRedo = history.future.length > 0
   const [draggedEntryId, setDraggedEntryId] = useState<string | null>(null)
+  const [templateLibrary, setTemplateLibrary] = useState<RoutineTemplate[]>([])
+  const [activeUserRole, setActiveUserRole] =
+    useState<RoutineTemplateOwnerRole>("coach")
+  const [templateOwnerRole, setTemplateOwnerRole] =
+    useState<RoutineTemplateOwnerRole>("coach")
+  const [templateVisibility, setTemplateVisibility] =
+    useState<RoutineTemplateVisibility>("shared")
+  const [templateTagInput, setTemplateTagInput] = useState("")
+  const [templateSearchInput, setTemplateSearchInput] = useState("")
+  const [templateFilterModality, setTemplateFilterModality] = useState<
+    RoutinePath | "all"
+  >("all")
+  const [templateFilterTagInput, setTemplateFilterTagInput] = useState("")
+  const [instantiationContext, setInstantiationContext] =
+    useState<RoutineTemplateContext>("macro")
+  const [templateStatusMessage, setTemplateStatusMessage] = useState<
+    string | null
+  >(null)
 
   const selectedStrengthExercises = useMemo(
     () => mapExercisesById(draft.strength.exerciseIds),
@@ -146,6 +183,20 @@ export function RoutineCreationFlow() {
     [selectedStrengthExercises]
   )
   const strengthBlocks = useMemo(() => ensurePrimaryBlock(draft), [draft])
+  const filteredTemplates = useMemo(
+    () =>
+      filterRoutineTemplates(templateLibrary, {
+        query: templateSearchInput,
+        modality: templateFilterModality,
+        tags: parseTagFilter(templateFilterTagInput)
+      }),
+    [
+      templateFilterModality,
+      templateFilterTagInput,
+      templateLibrary,
+      templateSearchInput
+    ]
+  )
 
   const commitDraft = useCallback(
     (nextDraft: RoutineDraft, options?: { dslBuffer?: string }) => {
@@ -335,6 +386,39 @@ export function RoutineCreationFlow() {
     }))
   }
 
+  const saveCurrentRoutineAsTemplate = () => {
+    const template = buildRoutineTemplate({
+      routine: draft,
+      ownerRole: templateOwnerRole,
+      ownerId: USER_IDS_BY_ROLE[templateOwnerRole],
+      visibility: templateVisibility,
+      tags: parseTemplateTagInput(templateTagInput),
+      name: draft.name
+    })
+
+    setTemplateLibrary((current) => [template, ...current])
+    setTemplateStatusMessage(`Saved template ${template.name}.`)
+  }
+
+  const instantiateFromTemplate = (template: RoutineTemplate) => {
+    const result = instantiateRoutineTemplate({
+      template,
+      actorRole: activeUserRole,
+      actorId: USER_IDS_BY_ROLE[activeUserRole],
+      context: instantiationContext
+    })
+
+    if (!result.ok) {
+      setTemplateStatusMessage(result.error)
+      return
+    }
+
+    commitDraft(result.routine)
+    setTemplateStatusMessage(
+      `Instantiated ${template.name} into ${instantiationContext} context.`
+    )
+  }
+
   return (
     <main className="mx-auto flex min-h-screen max-w-5xl flex-col gap-6 p-6">
       <header className="space-y-2">
@@ -441,6 +525,224 @@ export function RoutineCreationFlow() {
             </Button>
           </div>
         </div>
+      </Card>
+
+      <Card className="space-y-4 p-4" aria-label="Routine template library">
+        <header className="space-y-1">
+          <h2 className="text-lg font-medium">Routine template library</h2>
+          <p className="text-sm text-muted-foreground">
+            Save reusable templates and instantiate them into macro, meso, or
+            micro planning contexts.
+          </p>
+        </header>
+
+        {templateStatusMessage ? (
+          <p className="text-sm font-medium text-emerald-700">
+            {templateStatusMessage}
+          </p>
+        ) : null}
+
+        <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+          <div className="space-y-1">
+            <Label htmlFor="active-user-role">Active user role</Label>
+            <select
+              id="active-user-role"
+              aria-label="Active user role"
+              className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+              value={activeUserRole}
+              onChange={(event) => {
+                setActiveUserRole(
+                  event.target.value as RoutineTemplateOwnerRole
+                )
+              }}
+            >
+              <option value="coach">coach</option>
+              <option value="athlete">athlete</option>
+            </select>
+          </div>
+
+          <div className="space-y-1">
+            <Label htmlFor="template-owner-role">Template owner role</Label>
+            <select
+              id="template-owner-role"
+              aria-label="Template owner role"
+              className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+              value={templateOwnerRole}
+              onChange={(event) => {
+                setTemplateOwnerRole(
+                  event.target.value as RoutineTemplateOwnerRole
+                )
+              }}
+            >
+              <option value="coach">coach</option>
+              <option value="athlete">athlete</option>
+            </select>
+          </div>
+
+          <div className="space-y-1">
+            <Label htmlFor="template-visibility">Template visibility</Label>
+            <select
+              id="template-visibility"
+              aria-label="Template visibility"
+              className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+              value={templateVisibility}
+              onChange={(event) => {
+                setTemplateVisibility(
+                  event.target.value as RoutineTemplateVisibility
+                )
+              }}
+            >
+              <option value="shared">shared</option>
+              <option value="private">private</option>
+            </select>
+          </div>
+
+          <div className="space-y-1">
+            <Label htmlFor="instantiation-context">Instantiation context</Label>
+            <select
+              id="instantiation-context"
+              aria-label="Instantiation context"
+              className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+              value={instantiationContext}
+              onChange={(event) => {
+                setInstantiationContext(
+                  event.target.value as RoutineTemplateContext
+                )
+              }}
+            >
+              <option value="macro">macro</option>
+              <option value="meso">meso</option>
+              <option value="micro">micro</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="grid gap-3 md:grid-cols-2">
+          <div className="space-y-1">
+            <Label htmlFor="template-tags">Template tags</Label>
+            <Input
+              id="template-tags"
+              aria-label="Template tags"
+              placeholder="strength, power"
+              value={templateTagInput}
+              onChange={(event) => {
+                setTemplateTagInput(event.target.value)
+              }}
+            />
+          </div>
+
+          <div className="flex items-end">
+            <Button type="button" onClick={saveCurrentRoutineAsTemplate}>
+              Save as template
+            </Button>
+          </div>
+        </div>
+
+        <div className="grid gap-3 md:grid-cols-3">
+          <div className="space-y-1">
+            <Label htmlFor="template-search">Template search</Label>
+            <Input
+              id="template-search"
+              aria-label="Template search"
+              placeholder="Search by name or tag"
+              value={templateSearchInput}
+              onChange={(event) => {
+                setTemplateSearchInput(event.target.value)
+              }}
+            />
+          </div>
+
+          <div className="space-y-1">
+            <Label htmlFor="template-filter-modality">Filter modality</Label>
+            <select
+              id="template-filter-modality"
+              aria-label="Filter modality"
+              className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+              value={templateFilterModality}
+              onChange={(event) => {
+                const nextValue = event.target.value
+                setTemplateFilterModality(
+                  nextValue === "all" ? "all" : (nextValue as RoutinePath)
+                )
+              }}
+            >
+              <option value="all">all</option>
+              <option value="strength">strength</option>
+              <option value="endurance">endurance</option>
+            </select>
+          </div>
+
+          <div className="space-y-1">
+            <Label htmlFor="template-filter-tags">Filter tags</Label>
+            <Input
+              id="template-filter-tags"
+              aria-label="Filter tags"
+              placeholder="vo2, threshold"
+              value={templateFilterTagInput}
+              onChange={(event) => {
+                setTemplateFilterTagInput(event.target.value)
+              }}
+            />
+          </div>
+        </div>
+
+        <section className="space-y-2" aria-label="Saved routine templates">
+          {filteredTemplates.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              No templates match the current filters.
+            </p>
+          ) : (
+            <ul className="space-y-2">
+              {filteredTemplates.map((template) => {
+                const canInstantiate = canInstantiateRoutineTemplate({
+                  template,
+                  actorRole: activeUserRole,
+                  actorId: USER_IDS_BY_ROLE[activeUserRole]
+                })
+
+                return (
+                  <li key={template.id} className="rounded-md border p-3">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div className="space-y-1">
+                        <p className="font-medium">{template.name}</p>
+                        <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+                          <Badge>{template.path}</Badge>
+                          <Badge>{template.visibility}</Badge>
+                          <Badge>
+                            {template.ownerRole}:{template.ownerId}
+                          </Badge>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          Tags:{" "}
+                          {template.tags.length > 0
+                            ? template.tags.join(", ")
+                            : "none"}
+                        </p>
+                      </div>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        aria-label={`Instantiate ${template.name}`}
+                        disabled={!canInstantiate}
+                        onClick={() => {
+                          instantiateFromTemplate(template)
+                        }}
+                      >
+                        Instantiate {template.name}
+                      </Button>
+                    </div>
+                    {!canInstantiate ? (
+                      <p className="mt-2 text-xs text-amber-700">
+                        No access for current user role.
+                      </p>
+                    ) : null}
+                  </li>
+                )
+              })}
+            </ul>
+          )}
+        </section>
       </Card>
 
       {mode === "visual" ? (

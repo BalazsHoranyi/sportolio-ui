@@ -472,3 +472,39 @@ describe("RoutineCreationFlow", () => {
     expect(afterKeyboard[1]).toHaveTextContent("Seated Cable Row")
   })
 })
+
+it("saves templates and instantiates them with source attribution", async () => {
+  const user = userEvent.setup()
+
+  render(<RoutineCreationFlow />)
+
+  const routineName = screen.getByLabelText("Routine name")
+  await user.clear(routineName)
+  await user.type(routineName, "Coach Shared Builder")
+
+  await user.selectOptions(
+    screen.getByLabelText("Template owner role"),
+    "coach"
+  )
+  await user.selectOptions(
+    screen.getByLabelText("Template visibility"),
+    "shared"
+  )
+  await user.type(screen.getByLabelText("Template tags"), "strength, power")
+
+  await user.click(screen.getByRole("button", { name: "Save as template" }))
+  expect(screen.getByText("Coach Shared Builder")).toBeVisible()
+
+  await user.selectOptions(screen.getByLabelText("Active user role"), "athlete")
+  await user.selectOptions(
+    screen.getByLabelText("Instantiation context"),
+    "micro"
+  )
+
+  await user.click(
+    screen.getByRole("button", { name: "Instantiate Coach Shared Builder" })
+  )
+
+  expect(screen.getByText(/"templateSource"/)).toBeVisible()
+  expect(screen.getByText(/"context": "micro"/)).toBeVisible()
+})

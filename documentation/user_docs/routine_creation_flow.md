@@ -64,3 +64,26 @@ Strength mode now also supports:
 ## Payload preview
 
 A preview panel shows the currently synchronized routine payload. This mirrors what downstream sync/parity hooks consume.
+
+## Routine template library
+
+The flow now includes a **Routine template library** so you can reuse routines.
+
+You can:
+
+- save the current routine as a template
+- add template tags (for example, `strength`, `power`)
+- filter templates by modality and tags
+- instantiate templates into `macro`, `meso`, or `micro` planning context
+
+Instantiated routines include source attribution metadata in the payload preview (`templateSource`) so you can trace where the routine came from.
+
+## Template permissions
+
+- Coaches and athletes can use their own templates.
+- Athletes can instantiate coach templates when the template visibility is `shared`.
+- Private coach templates are not available to athletes.
+
+## Direct route
+
+You can open the routine flow directly at `/routine`.

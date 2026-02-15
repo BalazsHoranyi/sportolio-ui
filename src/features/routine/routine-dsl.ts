@@ -4,6 +4,9 @@ import type {
   EnduranceTargetType,
   EnduranceTimelineNode,
   RoutineDraft,
+  RoutineTemplateContext,
+  RoutineTemplateOwnerRole,
+  RoutineTemplateSource,
   StrengthBlockDraft,
   StrengthExerciseEntryDraft,
   StrengthProgressionRule,
@@ -25,6 +28,16 @@ const STRENGTH_PROGRESSION_STRATEGIES = new Set<StrengthProgressionStrategy>([
   "double-progression",
   "wave",
   "custom"
+])
+
+const TEMPLATE_CONTEXTS = new Set<RoutineTemplateContext>([
+  "macro",
+  "meso",
+  "micro"
+])
+const TEMPLATE_OWNER_ROLES = new Set<RoutineTemplateOwnerRole>([
+  "athlete",
+  "coach"
 ])
 
 function buildDefaultStrengthSet(setId: string): StrengthSetDraft {
@@ -495,6 +508,63 @@ function parseReusableBlocks(value: unknown): EnduranceReusableBlock[] {
   })
 }
 
+function parseTemplateContext(
+  value: unknown,
+  fieldName: string
+): RoutineTemplateContext {
+  const context = readString(value, fieldName) as RoutineTemplateContext
+  if (!TEMPLATE_CONTEXTS.has(context)) {
+    throw new Error(
+      "Set `templateSource.context` to `macro`, `meso`, or `micro`."
+    )
+  }
+  return context
+}
+
+function parseTemplateOwnerRole(
+  value: unknown,
+  fieldName: string
+): RoutineTemplateOwnerRole {
+  const role = readString(value, fieldName) as RoutineTemplateOwnerRole
+  if (!TEMPLATE_OWNER_ROLES.has(role)) {
+    throw new Error("Set `templateSource.ownerRole` to `athlete` or `coach`.")
+  }
+  return role
+}
+
+function parseTemplateSource(
+  value: unknown
+): RoutineTemplateSource | undefined {
+  if (typeof value === "undefined") {
+    return undefined
+  }
+
+  if (value === null) {
+    return undefined
+  }
+
+  if (!isRecord(value)) {
+    throw new Error(
+      "Set `templateSource` to an object with templateId/templateName/context/ownerRole/ownerId/instantiatedAt fields."
+    )
+  }
+
+  return {
+    templateId: readString(value.templateId, "templateSource.templateId"),
+    templateName: readString(value.templateName, "templateSource.templateName"),
+    context: parseTemplateContext(value.context, "templateSource.context"),
+    ownerRole: parseTemplateOwnerRole(
+      value.ownerRole,
+      "templateSource.ownerRole"
+    ),
+    ownerId: readString(value.ownerId, "templateSource.ownerId"),
+    instantiatedAt: readString(
+      value.instantiatedAt,
+      "templateSource.instantiatedAt"
+    )
+  }
+}
+
 export function parseRoutineDsl(source: string): ParseRoutineDslResult {
   let raw: unknown
 
@@ -572,7 +642,8 @@ export function parseRoutineDsl(source: string): ParseRoutineDslResult {
         endurance: {
           timeline,
           reusableBlocks: parseReusableBlocks(endurance.reusableBlocks)
-        }
+        },
+        templateSource: parseTemplateSource(raw.templateSource)
       }
     }
   } catch (error) {
