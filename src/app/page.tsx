@@ -1,5 +1,5 @@
-import { StrengthRoutineBuilder } from "@/features/routine/components/strength-routine-builder"
+import { RoutineCreationFlow } from "@/features/routine/components/routine-creation-flow"
 
 export default function HomePage() {
-  return <StrengthRoutineBuilder />
+  return <RoutineCreationFlow />
 }
