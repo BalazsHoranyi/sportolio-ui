@@ -30,10 +30,16 @@ The planning surface now includes a guided cycle-creation wizard for web v1. The
   - Step-based wizard UI
   - Explicit active-goal selection for multi-goal planning
   - Non-blocking warning display with alternatives
+  - Review-step microcycle muscle-map summaries with drill-down links
   - `Save draft` and restore-on-load behavior
 
 - `src/features/planning/components/planning-surface.tsx`
   - Cycle creation flow is now composed into the main planning surface.
+
+- `src/features/planning/microcycle-muscle-summary.ts`
+  - Planner-workout to microcycle summary mapping
+  - Exercise-title matching against catalog for muscle attribution
+  - Visual-only high-overlap detection per microcycle
 
 ## Testing
 
@@ -48,6 +54,14 @@ The planning surface now includes a guided cycle-creation wizard for web v1. The
   - full wizard step-through (goal -> mesocycle -> microcycle -> review)
   - soft warning visibility and proceed-anyway control
   - draft-save + restore on remount
+
+- `src/features/planning/__tests__/microcycle-muscle-summary.test.ts`
+  - microcycle grouping + deterministic drill-down output
+  - out-of-window exclusion and unmatched-workout handling
+  - high-overlap visual signal behavior
+
+- `src/features/planning/__tests__/planning-surface-muscle-summary.test.tsx`
+  - planner add/move/remove operations refresh review-step summary
 
 ## Notes
 

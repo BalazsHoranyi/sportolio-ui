@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 
 import dayGridPlugin from "@fullcalendar/daygrid"
 import interactionPlugin from "@fullcalendar/interaction"
@@ -44,6 +44,7 @@ const DEFAULT_WORKOUTS: PlanningWorkout[] = [
 type PlanningCalendarProps = {
   initialWorkouts?: PlanningWorkout[]
   onPlanningChange?: (change: PlanningChange) => void
+  onWorkoutsChange?: (workouts: PlanningWorkout[]) => void
 }
 
 type CalendarViewMode = "week" | "month"
@@ -80,7 +81,8 @@ function buildMovedTimingByOneDay(workout: PlanningWorkout) {
 
 export function PlanningCalendar({
   initialWorkouts = DEFAULT_WORKOUTS,
-  onPlanningChange
+  onPlanningChange,
+  onWorkoutsChange
 }: PlanningCalendarProps) {
   const [workouts, setWorkouts] = useState<PlanningWorkout[]>(initialWorkouts)
   const [nextWorkoutIndex, setNextWorkoutIndex] = useState(
@@ -109,6 +111,10 @@ export function PlanningCalendar({
   const emitChange = (change: PlanningChange) => {
     onPlanningChange?.(change)
   }
+
+  useEffect(() => {
+    onWorkoutsChange?.(workouts)
+  }, [onWorkoutsChange, workouts])
 
   const handleAddWorkout = () => {
     const title = titleInput.trim()
@@ -302,6 +308,7 @@ export function PlanningCalendar({
             {workouts.map((workout) => (
               <li
                 key={workout.id}
+                id={`planner-workout-${workout.id}`}
                 className="flex flex-wrap items-center justify-between gap-3 rounded-md border p-3"
               >
                 <div>

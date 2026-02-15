@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { MuscleMap } from "@/features/muscle-map/components/muscle-map"
 import {
   buildCycleWarnings,
   buildInitialCycleDraft,
@@ -22,6 +23,8 @@ import {
   type GoalModality,
   type MesocycleStrategy
 } from "@/features/planning/cycle-creation"
+import { buildMicrocycleMuscleSummaries } from "@/features/planning/microcycle-muscle-summary"
+import type { PlanningWorkout } from "@/features/planning/planning-operations"
 
 const DRAFT_STORAGE_KEY = "sportolo.cycle-creation.draft.v1"
 
@@ -79,7 +82,13 @@ function nextGoalIndex(goals: CycleGoalDraft[]): number {
   return maxGoalNumber + 1
 }
 
-export function CycleCreationFlow() {
+type CycleCreationFlowProps = {
+  plannedWorkouts?: PlanningWorkout[]
+}
+
+export function CycleCreationFlow({
+  plannedWorkouts = []
+}: CycleCreationFlowProps) {
   const [stepIndex, setStepIndex] = useState(0)
   const [draft, setDraft] = useState<CycleDraft>(() =>
     withSeedGoal(buildInitialCycleDraft())
@@ -88,6 +97,10 @@ export function CycleCreationFlow() {
   const [statusMessage, setStatusMessage] = useState<string | null>(null)
 
   const warnings = useMemo(() => buildCycleWarnings(draft), [draft])
+  const microcycleSummaries = useMemo(
+    () => buildMicrocycleMuscleSummaries(draft, plannedWorkouts),
+    [draft, plannedWorkouts]
+  )
 
   useEffect(() => {
     const persistedValue = localStorage.getItem(DRAFT_STORAGE_KEY)
@@ -667,6 +680,81 @@ export function CycleCreationFlow() {
               No soft warnings detected for this draft.
             </p>
           )}
+
+          <section
+            className="space-y-3"
+            aria-label="Microcycle muscle summaries"
+          >
+            <h4 className="text-base font-semibold">
+              Microcycle muscle-map summary
+            </h4>
+            <p className="text-sm text-muted-foreground">
+              Summary updates when planner workouts are added, moved, or
+              removed.
+            </p>
+
+            {microcycleSummaries.map((summary) => (
+              <Card
+                key={summary.microcycleId}
+                aria-label={`${summary.microcycleId} muscle summary`}
+                className="space-y-3 p-3"
+              >
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p className="text-sm font-medium">
+                    {summary.label} ({summary.microcycleId})
+                  </p>
+                  {summary.hasHighOverlap ? (
+                    <Badge className="border-amber-300 bg-amber-100 text-amber-900">
+                      High overlap
+                    </Badge>
+                  ) : null}
+                </div>
+
+                {summary.hasHighOverlap && summary.highOverlapBodyPart ? (
+                  <p className="text-sm text-amber-900">
+                    Visual warning: high overlap on{" "}
+                    {summary.highOverlapBodyPart}.
+                  </p>
+                ) : null}
+
+                <MuscleMap
+                  title={`${summary.label} Muscle Map`}
+                  contributions={summary.totals}
+                />
+
+                <div className="space-y-2">
+                  <p className="text-sm font-medium">Drill-down</p>
+                  {summary.workouts.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">
+                      No planned workouts mapped to this microcycle yet.
+                    </p>
+                  ) : (
+                    <ul className="space-y-2 text-sm">
+                      {summary.workouts.map((workout) => (
+                        <li key={workout.workoutId}>
+                          <a
+                            href={`#planner-workout-${workout.workoutId}`}
+                            className="font-medium underline underline-offset-2"
+                          >
+                            {workout.title}
+                          </a>
+                          {workout.exerciseNames.length > 0 ? (
+                            <p className="text-muted-foreground">
+                              Exercises: {workout.exerciseNames.join(", ")}
+                            </p>
+                          ) : (
+                            <p className="text-muted-foreground">
+                              Exercises: no matched catalog exercise.
+                            </p>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              </Card>
+            ))}
+          </section>
         </section>
       ) : null}
 

@@ -7,10 +7,14 @@ import { WeeklyAuditChart } from "@/features/audit/components/weekly-audit-chart
 import { weeklyAuditPreviewData } from "@/features/audit/weekly-audit-preview"
 import { PlanningCalendar } from "@/features/planning/components/planning-calendar"
 import { CycleCreationFlow } from "@/features/planning/components/cycle-creation-flow"
-import type { PlanningChange } from "@/features/planning/planning-operations"
+import type {
+  PlanningChange,
+  PlanningWorkout
+} from "@/features/planning/planning-operations"
 
 export function PlanningSurface() {
   const [lastChange, setLastChange] = useState<PlanningChange | null>(null)
+  const [plannedWorkouts, setPlannedWorkouts] = useState<PlanningWorkout[]>([])
 
   return (
     <main className="mx-auto flex min-h-screen max-w-6xl flex-col gap-6 p-6">
@@ -24,9 +28,12 @@ export function PlanningSurface() {
         </p>
       </header>
 
-      <PlanningCalendar onPlanningChange={setLastChange} />
+      <PlanningCalendar
+        onPlanningChange={setLastChange}
+        onWorkoutsChange={setPlannedWorkouts}
+      />
 
-      <CycleCreationFlow />
+      <CycleCreationFlow plannedWorkouts={plannedWorkouts} />
 
       <Card className="space-y-3 p-4" aria-label="Audit recompute payload">
         <h2 className="text-base font-medium">
