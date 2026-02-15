@@ -1,13 +1,30 @@
 export type RoutinePath = "strength" | "endurance"
 export type RoutineMode = "visual" | "dsl"
-export type EnduranceTargetType = "power" | "pace" | "hr"
+export type EnduranceTargetType = "power" | "pace" | "hr" | "cadence"
 
-export type EnduranceInterval = {
+export type EnduranceIntervalNode = {
+  kind: "interval"
   id: string
   label: string
   durationSeconds: number
   targetType: EnduranceTargetType
   targetValue: number
+}
+
+export type EnduranceBlockNode = {
+  kind: "block"
+  id: string
+  label: string
+  repeats: number
+  children: EnduranceTimelineNode[]
+}
+
+export type EnduranceTimelineNode = EnduranceIntervalNode | EnduranceBlockNode
+
+export type EnduranceReusableBlock = {
+  id: string
+  name: string
+  block: EnduranceBlockNode
 }
 
 export type RoutineDraft = {
@@ -17,6 +34,7 @@ export type RoutineDraft = {
     exerciseIds: string[]
   }
   endurance: {
-    intervals: EnduranceInterval[]
+    timeline: EnduranceTimelineNode[]
+    reusableBlocks: EnduranceReusableBlock[]
   }
 }

@@ -1,4 +1,11 @@
-import { fireEvent, render, screen, within } from "@testing-library/react"
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within
+} from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 
 import { RoutineCreationFlow } from "@/features/routine/components/routine-creation-flow"
@@ -152,5 +159,79 @@ describe("RoutineCreationFlow", () => {
     expect(screen.getByText("Threshold")).toBeVisible()
     expect(screen.getByText("480s")).toBeVisible()
     expect(screen.getByText("power: 320")).toBeVisible()
+  })
+
+  it("supports drag edits for endurance duration and target with deterministic precision", async () => {
+    const user = userEvent.setup()
+
+    render(<RoutineCreationFlow />)
+
+    await user.click(screen.getByRole("button", { name: "Endurance" }))
+
+    const durationHandle = screen.getByRole("button", {
+      name: "Resize duration for Steady State"
+    })
+    await act(async () => {
+      fireEvent.mouseDown(durationHandle, { clientX: 100, clientY: 120 })
+    })
+    await act(async () => {
+      window.dispatchEvent(
+        new MouseEvent("mousemove", { clientX: 145, clientY: 120 })
+      )
+    })
+    await act(async () => {
+      window.dispatchEvent(new MouseEvent("mouseup"))
+    })
+
+    await waitFor(() => {
+      expect(screen.getByText("345s")).toBeVisible()
+    })
+
+    const targetHandle = screen.getByRole("button", {
+      name: "Adjust target for Steady State"
+    })
+    await act(async () => {
+      fireEvent.mouseDown(targetHandle, { clientX: 100, clientY: 120 })
+    })
+    await act(async () => {
+      window.dispatchEvent(
+        new MouseEvent("mousemove", { clientX: 100, clientY: 145 })
+      )
+    })
+    await act(async () => {
+      window.dispatchEvent(new MouseEvent("mouseup"))
+    })
+
+    await waitFor(() => {
+      expect(screen.getByText("power: 225")).toBeVisible()
+    })
+  })
+
+  it("supports nested blocks and reusable block insertion in endurance timeline preview", async () => {
+    const user = userEvent.setup()
+    const { container } = render(<RoutineCreationFlow />)
+
+    await user.click(screen.getByRole("button", { name: "Endurance" }))
+
+    await user.click(screen.getByRole("button", { name: "Add block" }))
+    expect(screen.getByText("Block 1")).toBeVisible()
+
+    await user.click(
+      screen.getByRole("button", { name: "Save Block 1 as reusable block" })
+    )
+
+    await user.click(screen.getByRole("button", { name: "Insert Block 1" }))
+
+    const preview = container.querySelector("pre")
+    expect(preview).not.toBeNull()
+
+    const serialized = preview?.textContent ?? ""
+    const payload = JSON.parse(serialized)
+    expect(
+      payload.endurance.timeline.filter(
+        (entry: { kind: string }) => entry.kind === "block"
+      )
+    ).toHaveLength(2)
+    expect(payload.endurance.reusableBlocks).toHaveLength(1)
   })
 })

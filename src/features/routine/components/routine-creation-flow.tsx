@@ -15,15 +15,15 @@ import {
   serializeRoutineDraft
 } from "@/features/routine/routine-dsl"
 import { StrengthExercisePicker } from "@/features/routine/components/strength-exercise-picker"
+import { EnduranceTimelineBuilder } from "@/features/routine/components/endurance-timeline-builder"
 import type {
-  EnduranceInterval,
   EnduranceTargetType,
   RoutineDraft,
   RoutineMode,
   RoutinePath
 } from "@/features/routine/types"
 
-const TARGET_TYPES: EnduranceTargetType[] = ["power", "pace", "hr"]
+const TARGET_TYPES: EnduranceTargetType[] = ["power", "pace", "hr", "cadence"]
 
 function mapExercisesById(ids: string[]): Exercise[] {
   const catalogById = new Map(
@@ -33,25 +33,6 @@ function mapExercisesById(ids: string[]): Exercise[] {
   return ids
     .map((id) => catalogById.get(id))
     .filter((exercise): exercise is Exercise => Boolean(exercise))
-}
-
-function nextIntervalId(intervals: EnduranceInterval[]): string {
-  const seenNumericIds = intervals
-    .map((interval) => Number.parseInt(interval.id.replace("int-", ""), 10))
-    .filter((value) => Number.isFinite(value))
-
-  const maxId = seenNumericIds.length > 0 ? Math.max(...seenNumericIds) : 0
-  return `int-${maxId + 1}`
-}
-
-function buildIntervalDraft(intervals: EnduranceInterval[]): EnduranceInterval {
-  return {
-    id: nextIntervalId(intervals),
-    label: "New Interval",
-    durationSeconds: 300,
-    targetType: "power",
-    targetValue: 250
-  }
 }
 
 function createNextDraft(
@@ -66,7 +47,8 @@ function createNextDraft(
       exerciseIds: [...nextDraft.strength.exerciseIds]
     },
     endurance: {
-      intervals: [...nextDraft.endurance.intervals]
+      timeline: [...nextDraft.endurance.timeline],
+      reusableBlocks: [...nextDraft.endurance.reusableBlocks]
     }
   }
 }
@@ -271,72 +253,28 @@ export function RoutineCreationFlow() {
               </section>
             </>
           ) : (
-            <section
-              className="space-y-3"
-              aria-label="Endurance interval builder"
-            >
-              <div className="flex items-center justify-between gap-3">
-                <h2 className="text-base font-medium">Endurance intervals</h2>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => {
-                    applyDraftUpdate((current) => ({
-                      ...current,
-                      endurance: {
-                        intervals: [
-                          ...current.endurance.intervals,
-                          buildIntervalDraft(current.endurance.intervals)
-                        ]
-                      }
-                    }))
-                  }}
-                >
-                  Add interval
-                </Button>
-              </div>
-
-              <ul className="space-y-2">
-                {draft.endurance.intervals.map((interval) => (
-                  <li key={interval.id} className="rounded-md border p-3">
-                    <div className="flex items-center justify-between gap-3">
-                      <div>
-                        <p className="font-medium">{interval.label}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {interval.durationSeconds}s
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {interval.targetType}: {interval.targetValue}
-                        </p>
-                      </div>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          if (draft.endurance.intervals.length <= 1) {
-                            return
-                          }
-
-                          applyDraftUpdate((current) => ({
-                            ...current,
-                            endurance: {
-                              intervals: current.endurance.intervals.filter(
-                                (entry) => entry.id !== interval.id
-                              )
-                            }
-                          }))
-                        }}
-                        aria-label={`Remove ${interval.label}`}
-                        disabled={draft.endurance.intervals.length <= 1}
-                      >
-                        Remove
-                      </Button>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </section>
+            <EnduranceTimelineBuilder
+              timeline={draft.endurance.timeline}
+              reusableBlocks={draft.endurance.reusableBlocks}
+              onTimelineChange={(nextTimeline) => {
+                applyDraftUpdate((current) => ({
+                  ...current,
+                  endurance: {
+                    ...current.endurance,
+                    timeline: nextTimeline
+                  }
+                }))
+              }}
+              onReusableBlocksChange={(nextReusableBlocks) => {
+                applyDraftUpdate((current) => ({
+                  ...current,
+                  endurance: {
+                    ...current.endurance,
+                    reusableBlocks: nextReusableBlocks
+                  }
+                }))
+              }}
+            />
           )}
         </Card>
       ) : (
