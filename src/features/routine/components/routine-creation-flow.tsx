@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -24,6 +24,13 @@ import type {
 } from "@/features/routine/types"
 
 const TARGET_TYPES: EnduranceTargetType[] = ["power", "pace", "hr", "cadence"]
+const INITIAL_ROUTINE_DRAFT = buildInitialRoutineDraft()
+
+type DraftHistory = {
+  past: RoutineDraft[]
+  present: RoutineDraft
+  future: RoutineDraft[]
+}
 
 function mapExercisesById(ids: string[]): Exercise[] {
   const catalogById = new Map(
@@ -39,48 +46,125 @@ function createNextDraft(
   draft: RoutineDraft,
   updater: (current: RoutineDraft) => RoutineDraft
 ): RoutineDraft {
-  const nextDraft = updater(draft)
+  return structuredClone(updater(draft))
+}
 
-  return {
-    ...nextDraft,
-    strength: {
-      exerciseIds: [...nextDraft.strength.exerciseIds]
-    },
-    endurance: {
-      timeline: [...nextDraft.endurance.timeline],
-      reusableBlocks: [...nextDraft.endurance.reusableBlocks]
-    }
-  }
+function draftsEqual(left: RoutineDraft, right: RoutineDraft): boolean {
+  return serializeRoutineDraft(left) === serializeRoutineDraft(right)
 }
 
 export function RoutineCreationFlow() {
   const [mode, setMode] = useState<RoutineMode>("visual")
-  const [draft, setDraft] = useState<RoutineDraft>(() =>
-    buildInitialRoutineDraft()
-  )
+  const [history, setHistory] = useState<DraftHistory>(() => ({
+    past: [],
+    present: structuredClone(INITIAL_ROUTINE_DRAFT),
+    future: []
+  }))
   const [dslValue, setDslValue] = useState<string>(() =>
-    serializeRoutineDraft(buildInitialRoutineDraft())
+    serializeRoutineDraft(INITIAL_ROUTINE_DRAFT)
   )
   const [dslError, setDslError] = useState<string | null>(null)
+  const draft = history.present
+  const canUndo = history.past.length > 0
+  const canRedo = history.future.length > 0
 
   const selectedStrengthExercises = useMemo(
     () => mapExercisesById(draft.strength.exerciseIds),
     [draft.strength.exerciseIds]
   )
 
-  const applyDraftUpdate = (
-    updater: (current: RoutineDraft) => RoutineDraft
-  ) => {
-    setDraft((current) => {
-      const next = createNextDraft(current, updater)
-
-      if (mode === "dsl") {
-        setDslValue(serializeRoutineDraft(next))
+  const commitDraft = useCallback(
+    (nextDraft: RoutineDraft, options?: { dslBuffer?: string }) => {
+      if (!draftsEqual(history.present, nextDraft)) {
+        setHistory((current) => ({
+          past: [...current.past, current.present],
+          present: structuredClone(nextDraft),
+          future: []
+        }))
       }
 
-      return next
+      setDslValue(options?.dslBuffer ?? serializeRoutineDraft(nextDraft))
+      setDslError(null)
+    },
+    [history.present]
+  )
+
+  const applyDraftUpdate = useCallback(
+    (updater: (current: RoutineDraft) => RoutineDraft) => {
+      commitDraft(createNextDraft(draft, updater))
+    },
+    [commitDraft, draft]
+  )
+
+  const undo = useCallback(() => {
+    if (!canUndo) {
+      return
+    }
+
+    const previousDraft = history.past[history.past.length - 1]
+    setHistory((current) => {
+      if (current.past.length === 0) {
+        return current
+      }
+
+      const previous = current.past[current.past.length - 1]
+      return {
+        past: current.past.slice(0, -1),
+        present: previous,
+        future: [current.present, ...current.future]
+      }
     })
-  }
+    setDslValue(serializeRoutineDraft(previousDraft))
+    setDslError(null)
+  }, [canUndo, history.past])
+
+  const redo = useCallback(() => {
+    if (!canRedo) {
+      return
+    }
+
+    const nextDraft = history.future[0]
+    setHistory((current) => {
+      if (current.future.length === 0) {
+        return current
+      }
+
+      const [next, ...remainingFuture] = current.future
+      return {
+        past: [...current.past, current.present],
+        present: next,
+        future: remainingFuture
+      }
+    })
+    setDslValue(serializeRoutineDraft(nextDraft))
+    setDslError(null)
+  }, [canRedo, history.future])
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const hasModifier = event.metaKey || event.ctrlKey
+      if (!hasModifier) {
+        return
+      }
+
+      const key = event.key.toLowerCase()
+      if (key === "z" && !event.shiftKey) {
+        event.preventDefault()
+        undo()
+        return
+      }
+
+      if (key === "y" || (key === "z" && event.shiftKey)) {
+        event.preventDefault()
+        redo()
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown)
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown)
+    }
+  }, [redo, undo])
 
   const setActivePath = (path: RoutinePath) => {
     applyDraftUpdate((current) => ({
@@ -173,6 +257,34 @@ export function RoutineCreationFlow() {
               onClick={() => setActiveMode("dsl")}
             >
               DSL
+            </Button>
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <p className="text-sm font-medium">History</p>
+          <div
+            className="flex flex-wrap gap-2"
+            role="group"
+            aria-label="Routine edit history"
+          >
+            <Button
+              type="button"
+              variant="outline"
+              aria-keyshortcuts="Control+Z Meta+Z"
+              onClick={undo}
+              disabled={!canUndo}
+            >
+              Undo
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              aria-keyshortcuts="Control+Y Meta+Y Control+Shift+Z Meta+Shift+Z"
+              onClick={redo}
+              disabled={!canRedo}
+            >
+              Redo
             </Button>
           </div>
         </div>
@@ -296,8 +408,7 @@ export function RoutineCreationFlow() {
                 return
               }
 
-              setDslError(null)
-              setDraft(parseResult.draft)
+              commitDraft(parseResult.draft, { dslBuffer: nextValue })
             }}
           />
           {dslError ? (

@@ -234,4 +234,149 @@ describe("RoutineCreationFlow", () => {
     ).toHaveLength(2)
     expect(payload.endurance.reusableBlocks).toHaveLength(1)
   })
+
+  it("supports undo/redo history for visual edits", async () => {
+    const user = userEvent.setup()
+
+    render(<RoutineCreationFlow />)
+
+    const searchInput = screen.getByLabelText("Search exercises")
+    await user.type(searchInput, "back squat")
+    await user.click(
+      await screen.findByRole("option", {
+        name: /Back Squat/i
+      })
+    )
+
+    expect(
+      screen.getByLabelText("Selected strength exercises")
+    ).toHaveTextContent("Back Squat")
+
+    await user.click(screen.getByRole("button", { name: "Undo" }))
+    expect(
+      screen.getByLabelText("Selected strength exercises")
+    ).not.toHaveTextContent("Back Squat")
+
+    await user.click(screen.getByRole("button", { name: "Redo" }))
+    expect(
+      screen.getByLabelText("Selected strength exercises")
+    ).toHaveTextContent("Back Squat")
+  })
+
+  it("supports undo/redo history for valid DSL edits", async () => {
+    const user = userEvent.setup()
+
+    render(<RoutineCreationFlow />)
+
+    await user.click(screen.getByRole("button", { name: "DSL" }))
+
+    const dslEditor = screen.getByLabelText("Routine DSL editor")
+    fireEvent.change(dslEditor, {
+      target: {
+        value: JSON.stringify(
+          {
+            name: "Tempo Builder",
+            path: "endurance",
+            strength: { exerciseIds: [] },
+            endurance: {
+              timeline: [
+                {
+                  kind: "interval",
+                  id: "int-1",
+                  label: "Tempo",
+                  durationSeconds: 420,
+                  targetType: "power",
+                  targetValue: 305
+                }
+              ],
+              reusableBlocks: []
+            }
+          },
+          null,
+          2
+        )
+      }
+    })
+
+    await user.click(screen.getByRole("button", { name: "Visual" }))
+    expect(screen.getByText("Tempo")).toBeVisible()
+
+    await user.click(screen.getByRole("button", { name: "Undo" }))
+    expect(screen.queryByText("Tempo")).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole("button", { name: "Redo" }))
+    expect(screen.getByText("Tempo")).toBeVisible()
+  })
+
+  it("preserves last valid state when a partially invalid DSL payload is entered", async () => {
+    const user = userEvent.setup()
+
+    render(<RoutineCreationFlow />)
+
+    await user.click(screen.getByRole("button", { name: "DSL" }))
+
+    const dslEditor = screen.getByLabelText("Routine DSL editor")
+    fireEvent.change(dslEditor, {
+      target: {
+        value: JSON.stringify(
+          {
+            name: "Valid Builder",
+            path: "endurance",
+            strength: { exerciseIds: [] },
+            endurance: {
+              timeline: [
+                {
+                  kind: "interval",
+                  id: "int-1",
+                  label: "Steady",
+                  durationSeconds: 360,
+                  targetType: "pace",
+                  targetValue: 410
+                }
+              ],
+              reusableBlocks: []
+            }
+          },
+          null,
+          2
+        )
+      }
+    })
+
+    fireEvent.change(dslEditor, {
+      target: {
+        value: JSON.stringify(
+          {
+            name: "Valid Builder",
+            path: "endurance",
+            strength: { exerciseIds: [] },
+            endurance: {
+              timeline: [
+                {
+                  kind: "interval",
+                  id: "int-1",
+                  label: "",
+                  durationSeconds: 360,
+                  targetType: "pace",
+                  targetValue: 410
+                }
+              ],
+              reusableBlocks: []
+            }
+          },
+          null,
+          2
+        )
+      }
+    })
+
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "non-empty string value"
+    )
+
+    await user.click(screen.getByRole("button", { name: "Visual" }))
+
+    expect(screen.getByText("Steady")).toBeVisible()
+    expect(screen.getByLabelText("Routine name")).toHaveValue("Valid Builder")
+  })
 })

@@ -3,6 +3,84 @@ import {
   parseRoutineDsl,
   serializeRoutineDraft
 } from "@/features/routine/routine-dsl"
+import type { RoutineDraft } from "@/features/routine/types"
+
+const ROUND_TRIP_FIXTURES: ReadonlyArray<{
+  name: string
+  draft: RoutineDraft
+}> = [
+  {
+    name: "strength-path-with-multiple-exercises",
+    draft: {
+      name: "Strength Builder",
+      path: "strength",
+      strength: { exerciseIds: ["ex-3", "ex-2", "ex-1"] },
+      endurance: {
+        timeline: [
+          {
+            kind: "interval",
+            id: "int-1",
+            label: "Steady",
+            durationSeconds: 300,
+            targetType: "power",
+            targetValue: 250
+          }
+        ],
+        reusableBlocks: []
+      }
+    }
+  },
+  {
+    name: "endurance-path-with-nested-blocks-and-templates",
+    draft: {
+      name: "Endurance Builder",
+      path: "endurance",
+      strength: { exerciseIds: ["ex-1"] },
+      endurance: {
+        timeline: [
+          {
+            kind: "block",
+            id: "blk-1",
+            label: "Main Set",
+            repeats: 2,
+            children: [
+              {
+                kind: "interval",
+                id: "int-1",
+                label: "Threshold",
+                durationSeconds: 420,
+                targetType: "hr",
+                targetValue: 168
+              }
+            ]
+          }
+        ],
+        reusableBlocks: [
+          {
+            id: "tpl-1",
+            name: "Main Set Template",
+            block: {
+              kind: "block",
+              id: "blk-template-1",
+              label: "Template Block",
+              repeats: 2,
+              children: [
+                {
+                  kind: "interval",
+                  id: "int-template-1",
+                  label: "Tempo",
+                  durationSeconds: 360,
+                  targetType: "pace",
+                  targetValue: 405
+                }
+              ]
+            }
+          }
+        ]
+      }
+    }
+  }
+]
 
 describe("routine-dsl", () => {
   it("serializes and parses a valid routine draft", () => {
@@ -227,4 +305,30 @@ describe("routine-dsl", () => {
     ])
     expect(result.draft.endurance.reusableBlocks).toEqual([])
   })
+
+  it.each(ROUND_TRIP_FIXTURES)(
+    "preserves no-loss round-trip invariants for fixture: $name",
+    ({ draft }) => {
+      const firstPass = parseRoutineDsl(serializeRoutineDraft(draft))
+
+      expect(firstPass.ok).toBe(true)
+      if (!firstPass.ok) {
+        throw new Error("Expected initial parse success")
+      }
+
+      const serialized = serializeRoutineDraft(firstPass.draft)
+      const secondPass = parseRoutineDsl(serialized)
+
+      expect(secondPass).toEqual({
+        ok: true,
+        draft: firstPass.draft
+      })
+
+      if (!secondPass.ok) {
+        throw new Error("Expected second parse success")
+      }
+
+      expect(serializeRoutineDraft(secondPass.draft)).toBe(serialized)
+    }
+  )
 })

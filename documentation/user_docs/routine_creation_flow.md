@@ -15,11 +15,23 @@ You can switch between these paths at any time.
 - `DSL`: advanced JSON editor for direct control.
 
 Switching modes keeps your supported routine fields synchronized.
+Visual edits and valid DSL edits both update the shared routine state immediately.
 
 ## Validation behavior
 
 If DSL input is invalid, the editor shows an inline error with actionable guidance.
 Your last valid routine state is preserved, so switching back to Visual mode is safe.
+This includes partially invalid payload edits: invalid changes are rejected, and the last valid state stays active.
+
+## Undo/Redo history
+
+You can undo and redo committed routine edits from either editing mode.
+
+- Buttons: `Undo` and `Redo` in the flow header
+- Keyboard shortcuts:
+  - `Ctrl/Cmd + Z` -> Undo
+  - `Ctrl/Cmd + Y` -> Redo
+  - `Ctrl/Cmd + Shift + Z` -> Redo
 
 ## Endurance interval controls
 
