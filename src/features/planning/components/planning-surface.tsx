@@ -2,8 +2,11 @@
 
 import { useState } from "react"
 
+import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
+import { MonthlyAuditChart } from "@/features/audit/components/monthly-audit-chart"
 import { WeeklyAuditChart } from "@/features/audit/components/weekly-audit-chart"
+import { monthlyAuditPreviewData } from "@/features/audit/monthly-audit-preview"
 import { weeklyAuditPreviewData } from "@/features/audit/weekly-audit-preview"
 import { PlanningCalendar } from "@/features/planning/components/planning-calendar"
 import { CycleCreationFlow } from "@/features/planning/components/cycle-creation-flow"
@@ -15,6 +18,7 @@ import type {
 export function PlanningSurface() {
   const [lastChange, setLastChange] = useState<PlanningChange | null>(null)
   const [plannedWorkouts, setPlannedWorkouts] = useState<PlanningWorkout[]>([])
+  const [auditView, setAuditView] = useState<"week" | "month">("week")
 
   return (
     <main className="mx-auto flex min-h-screen max-w-6xl flex-col gap-6 p-6">
@@ -51,7 +55,37 @@ export function PlanningSurface() {
         )}
       </Card>
 
-      <WeeklyAuditChart data={weeklyAuditPreviewData} />
+      <Card className="space-y-3 p-4" aria-label="Audit chart view controls">
+        <h2 className="text-base font-medium">Audit chart window</h2>
+        <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            size="sm"
+            variant={auditView === "week" ? "default" : "outline"}
+            onClick={() => {
+              setAuditView("week")
+            }}
+          >
+            Week
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant={auditView === "month" ? "default" : "outline"}
+            onClick={() => {
+              setAuditView("month")
+            }}
+          >
+            Month
+          </Button>
+        </div>
+      </Card>
+
+      {auditView === "week" ? (
+        <WeeklyAuditChart data={weeklyAuditPreviewData} />
+      ) : (
+        <MonthlyAuditChart data={monthlyAuditPreviewData} />
+      )}
     </main>
   )
 }

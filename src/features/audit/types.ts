@@ -19,3 +19,13 @@ export type WeeklyAuditChartData = {
   seriesState?: string | null
   days: WeeklyAuditDay[]
 }
+
+export type MonthlyAuditWindow = {
+  monthLabel: string
+  seriesState?: string | null
+  days: WeeklyAuditDay[]
+}
+
+export type MonthlyAuditChartData = {
+  windows: MonthlyAuditWindow[]
+}
