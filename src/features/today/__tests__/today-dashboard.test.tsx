@@ -45,6 +45,14 @@ const todayData: TodayDashboardData = {
 }
 
 describe("TodayDashboard", () => {
+  it("uses the shared app-shell layout contract", () => {
+    render(<TodayDashboard data={todayData} />)
+
+    const main = screen.getByRole("main")
+    expect(main).toHaveAttribute("data-layout", "app-shell")
+    expect(main).toHaveClass("app-shell")
+  })
+
   it("renders axis gauges, recruitment badge, and accumulation window context", () => {
     render(<TodayDashboard data={todayData} />)
 

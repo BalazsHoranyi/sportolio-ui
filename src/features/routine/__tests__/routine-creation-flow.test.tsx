@@ -11,6 +11,14 @@ import userEvent from "@testing-library/user-event"
 import { RoutineCreationFlow } from "@/features/routine/components/routine-creation-flow"
 
 describe("RoutineCreationFlow", () => {
+  it("uses the shared app-shell layout contract", () => {
+    render(<RoutineCreationFlow />)
+
+    const main = screen.getByRole("main")
+    expect(main).toHaveAttribute("data-layout", "app-shell")
+    expect(main).toHaveClass("app-shell")
+  })
+
   it("supports strength and endurance entry paths with visual/DSL synchronization", async () => {
     const user = userEvent.setup()
 

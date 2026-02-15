@@ -1,5 +1,6 @@
 import { Badge } from "@/components/ui/badge"
 import { Card } from "@/components/ui/card"
+import { AppShell } from "@/components/layout/app-shell"
 import { cn } from "@/lib/utils"
 import type {
   TodayContributorSession,
@@ -99,13 +100,11 @@ export function TodayDashboard({ data }: { data: TodayDashboardData }) {
   )
 
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-5xl flex-col gap-6 p-6">
-      <header className="space-y-3">
-        <h1 className="text-3xl font-semibold tracking-tight">Today</h1>
-        <p className="text-sm text-muted-foreground">
-          Completed-session carryover and readiness view for today&apos;s
-          execution decisions.
-        </p>
+    <AppShell
+      title="Today"
+      description="Completed-session carryover and readiness view for today's execution decisions."
+      maxWidth="narrow"
+      headerContent={
         <div className="flex flex-wrap items-center gap-3">
           <Badge>Recruitment {formatScore(data.snapshot.recruitment)}</Badge>
           <p className="text-sm text-muted-foreground">
@@ -113,8 +112,8 @@ export function TodayDashboard({ data }: { data: TodayDashboardData }) {
             {data.accumulation.boundaryEnd}
           </p>
         </div>
-      </header>
-
+      }
+    >
       <section
         className="grid gap-4 md:grid-cols-3"
         aria-label="Primary fatigue gauges"
@@ -225,6 +224,6 @@ export function TodayDashboard({ data }: { data: TodayDashboardData }) {
           </div>
         )}
       </Card>
-    </main>
+    </AppShell>
   )
 }

@@ -34,6 +34,14 @@ async function goToReviewStep(user: ReturnType<typeof userEvent.setup>) {
 }
 
 describe("PlanningSurface microcycle muscle summary", () => {
+  it("uses the shared app-shell layout contract", () => {
+    render(<PlanningSurface />)
+
+    const main = screen.getByRole("main")
+    expect(main).toHaveAttribute("data-layout", "app-shell")
+    expect(main).toHaveClass("app-shell")
+  })
+
   it("refreshes review-step summaries after planner add/move/remove operations", async () => {
     const user = userEvent.setup()
     render(<PlanningSurface />)

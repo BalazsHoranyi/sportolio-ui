@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { AppShell } from "@/components/layout/app-shell"
 import { EXERCISE_CATALOG } from "@/features/exercises/catalog"
 import type { Exercise } from "@/features/exercises/types"
 import {
@@ -420,17 +421,11 @@ export function RoutineCreationFlow() {
   }
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-5xl flex-col gap-6 p-6">
-      <header className="space-y-2">
-        <h1 className="text-3xl font-semibold tracking-tight">
-          Routine Creation Flow
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          Build routines in visual mode or edit the advanced DSL directly while
-          keeping both views synchronized.
-        </p>
-      </header>
-
+    <AppShell
+      title="Routine Creation Flow"
+      description="Build routines in visual mode or edit the advanced DSL directly while keeping both views synchronized."
+      maxWidth="narrow"
+    >
       <Card className="space-y-4 p-4">
         <div className="space-y-2">
           <Label htmlFor="routine-name-input">Routine name</Label>
@@ -1618,6 +1613,6 @@ export function RoutineCreationFlow() {
           ))}
         </div>
       </Card>
-    </main>
+    </AppShell>
   )
 }

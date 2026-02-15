@@ -4,6 +4,7 @@ import { useState } from "react"
 
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
+import { AppShell } from "@/components/layout/app-shell"
 import { MonthlyAuditChart } from "@/features/audit/components/monthly-audit-chart"
 import { WeeklyAuditChart } from "@/features/audit/components/weekly-audit-chart"
 import { monthlyAuditPreviewData } from "@/features/audit/monthly-audit-preview"
@@ -21,17 +22,10 @@ export function PlanningSurface() {
   const [auditView, setAuditView] = useState<"week" | "month">("week")
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-6xl flex-col gap-6 p-6">
-      <header className="space-y-1">
-        <h1 className="text-3xl font-semibold tracking-tight">
-          Workout Planning Surface
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          Plan workouts in week/month calendar views and emit deterministic
-          recomputation payloads for audit updates.
-        </p>
-      </header>
-
+    <AppShell
+      title="Workout Planning Surface"
+      description="Plan workouts in week/month calendar views and emit deterministic recomputation payloads for audit updates."
+    >
       <PlanningCalendar
         onPlanningChange={setLastChange}
         onWorkoutsChange={setPlannedWorkouts}
@@ -86,6 +80,6 @@ export function PlanningSurface() {
       ) : (
         <MonthlyAuditChart data={monthlyAuditPreviewData} />
       )}
-    </main>
+    </AppShell>
   )
 }

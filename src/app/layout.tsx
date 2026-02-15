@@ -1,5 +1,6 @@
 import type { Metadata } from "next"
 import "./globals.css"
+import { SkipToContentLink } from "@/components/layout/skip-to-content-link"
 
 export const metadata: Metadata = {
   title: "Sportolo UI",
@@ -13,7 +14,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <SkipToContentLink />
+        {children}
+      </body>
     </html>
   )
 }
