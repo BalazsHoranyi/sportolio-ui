@@ -1,5 +1,5 @@
-import { RoutineCreationFlow } from "@/features/routine/components/routine-creation-flow"
+import { PlanningSurface } from "@/features/planning/components/planning-surface"
 
 export default function HomePage() {
-  return <RoutineCreationFlow />
+  return <PlanningSurface />
 }
